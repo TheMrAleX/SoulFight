@@ -7,3 +7,5 @@
 - JDK 17, SDK 34 y Gradle 8.9 descargados de fuentes oficiales con comprobaciones de integridad. Gradle wrapper fija SHA-256 de distribución.
 - El entorno no dispone de /dev/kvm. Se inició Android Emulator con emulación de CPU; todavía no constituye una validación de la aplicación en ejecución. La primera instalación no pudo completarse antes de que Android iniciara PackageManager.
 - Sin medición de 60 FPS en dispositivo físico y sin prueba de dos teléfonos WiFi. Las comprobaciones visuales de TRACEABILITY siguen pendientes.
+
+- GitHub Actions ejecutó correctamente tests y compilación en un runner independiente. El job de publicación verificó SHA-256 y el certificado y adjuntó `FightForge.apk` y `SHA256SUMS` a la release pública preliminar `v0.1.0`. Se precreó el tag exacto mediante Git para evitar el límite de creación de tags del token de Actions.

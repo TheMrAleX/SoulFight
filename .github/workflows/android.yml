@@ -108,5 +108,5 @@ jobs:
           if gh release view "$RELEASE_TAG" > /dev/null 2>&1; then
             gh release upload "$RELEASE_TAG" prepared/FightForge.apk prepared/SHA256SUMS --clobber
           else
-            gh release create "$RELEASE_TAG" prepared/FightForge.apk prepared/SHA256SUMS --target "$SOURCE_COMMIT" --title "Fight Forge $RELEASE_TAG" --prerelease --notes-file source/RELEASE_NOTES.md
+            gh release create "$RELEASE_TAG" prepared/FightForge.apk prepared/SHA256SUMS --verify-tag --target "$SOURCE_COMMIT" --title "Fight Forge $RELEASE_TAG" --prerelease --notes-file source/RELEASE_NOTES.md
           fi

@@ -30,6 +30,7 @@ for name, content in files.items():
 tree = git("mktree", data="".join(entries).encode())
 commit = git("commit-tree", tree, "-m", f"Verified signed payload v{version}; no private keys")
 subprocess.run(["git", "-C", str(root), "push", "origin", f"{commit}:refs/heads/release-artifacts/v{version}"], check=True)
+subprocess.run(["git", "-C", str(root), "push", "origin", f"{source}:refs/tags/v{version}"], check=True)
 subprocess.run(["git", "-C", str(root), "commit", "--allow-empty", "-m", f"[publish-release:v{version}] Publish verified signed APK"], check=True)
 subprocess.run(["git", "-C", str(root), "push", "origin", "HEAD:main"], check=True)
 print("Signed payload queued for verification and publication by GitHub Actions.")
