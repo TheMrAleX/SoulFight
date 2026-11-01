@@ -54,7 +54,7 @@ class ForgeInstrumentation: Instrumentation() {
     File(context.cacheDir,"network").listFiles()?.firstOrNull()?.writeText("damaged cache")
     check(peerRun(120)>0); count++
     runOnMainSync {
-     val bitmap=Bitmap.createBitmap(64,64,Bitmap.Config.ARGB_8888); val view=PixelView(context,bitmap); view.layout(0,0,128,128); view.brush=1; view.color=Color.WHITE
+     val bitmap=Bitmap.createBitmap(64,64,Bitmap.Config.ARGB_8888); val view=PixelView(context,bitmap); android.widget.FrameLayout(context).addView(view); view.layout(0,0,128,128); view.brush=1; view.color=Color.WHITE
      fun point(x: Float,y: Float){val now=android.os.SystemClock.uptimeMillis(); val down=MotionEvent.obtain(now,now,MotionEvent.ACTION_DOWN,x,y,0); val up=MotionEvent.obtain(now,now+1,MotionEvent.ACTION_UP,x,y,0); view.onTouchEvent(down); view.onTouchEvent(up); down.recycle(); up.recycle()}
      repeat(51){i -> point(((i%16)*3+1.5f)*2,((i/16)*3+1.5f)*2)}
      repeat(50){view.undo()}; val pixels=IntArray(4096); bitmap.getPixels(pixels,0,64,0,0,64,64); check(pixels.count {Color.alpha(it)>0}==1)
