@@ -6,3 +6,5 @@
 *.p12
 /signing.properties
 .idea/
+
+.kotlin/

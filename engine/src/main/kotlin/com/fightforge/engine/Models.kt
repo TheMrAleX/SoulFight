@@ -21,8 +21,8 @@ const val FLOOR = 920 * SCALE
 enum class State { IDLE,WALK,RUN,CROUCH_DOWN,CROUCH,CROUCH_UP,JUMP,FALL,AIR_RUN,BLOCK_STAND,BLOCK_CROUCH,BLOCK_AIR,HURT,STUN,DIZZY,KO,DOWN,GETUP,ATTACK,GRABBED,TECH }
 @Serializable enum class Kind { BASIC, COMMAND, ULTIMATE }
 @Serializable enum class BoxKind { DAMAGE, MOVEMENT, TELEPORT, PUNISH, PROJECTILE, SOLID, GHOST, GRAB }
-@Serializable data class Box(val kind: BoxKind, val rect: Rect, val rival: Boolean = false, val returnTrip: Boolean = false, val speed: Int = 0, val gravity: Boolean = false, val freeDirection: Boolean = false, val hp: Int = 50, val behavior: Int = 0, val effect: Int = 0, val harmfulToOwner: Boolean = false, val slots: Int = 1)
-@Serializable data class Move(val name: String, val command: List<String>, val kind: Kind = Kind.BASIC, val startup: Int = 5, val recovery: Int = 5, val extra: Int = 0, val boxes: List<Box> = emptyList(), val powerPercent: Int = 50, val invulnerable: Boolean = false, val antiAir: Boolean = false, val antiGround: Boolean = false, val animation: String = "quieto") {
+@Serializable data class Box(val kind: BoxKind, val rect: Rect, val rival: Boolean = false, val returnTrip: Boolean = false, val speed: Int = 0, val gravity: Boolean = false, val freeDirection: Boolean = false, val hp: Int = 50, val behavior: Int = 0, val effect: Int = 6, val harmfulToOwner: Boolean = false, val slots: Int = 1, val entity: String = "player", val both: Boolean = false, val photo: String = "")
+@Serializable data class Move(val name: String, val command: List<String>, val kind: Kind = Kind.BASIC, val startup: Int = 5, val recovery: Int = 5, val extra: Int = 0, val boxes: List<Box> = emptyList(), val powerPercent: Int = 50, val invulnerable: Boolean = false, val antiAir: Boolean = false, val antiGround: Boolean = false, val animation: String = "quieto", val introAnimation: String = "") {
     val active get() = when(kind) { Kind.BASIC -> 4; Kind.COMMAND -> 6; Kind.ULTIMATE -> 8 }
     val duration get() = startup + active + recovery
     fun damage(s: Stats, combo: Int = 1): Int {
@@ -31,7 +31,8 @@ enum class State { IDLE,WALK,RUN,CROUCH_DOWN,CROUCH,CROUCH_UP,JUMP,FALL,AIR_RUN,
         return (base.toLong() * (60 + 8*s.damage) * (100+extra) * (100+20*(buttons-1)) * max(40,100-10*(combo-1)) / 100000000).toInt().coerceAtLeast(1)
     }
 }
-@Serializable data class FighterDef(val id: String, val name: String, val stats: Stats = Stats(), val width: Int = 200, val height: Int = 400, val description: String = "", val moves: List<Move> = emptyList(), val color: Int = 0, val custom: Boolean = false, val animations: Map<String,List<String>> = emptyMap())
+@Serializable data class AnimationSettings(val fps: Int=12,val loop: Boolean=true,val enabled: Boolean=true)
+@Serializable data class FighterDef(val id: String, val name: String, val stats: Stats = Stats(), val width: Int = 200, val height: Int = 400, val description: String = "", val moves: List<Move> = emptyList(), val color: Int = 0, val custom: Boolean = false, val animations: Map<String,List<String>> = emptyMap(),val animationSettings: Map<String,AnimationSettings> = emptyMap())
 object Commands {
     val tokens = setOf("N","NE","E","SE","S","SW","W","NW","A","B","C","D")
     fun normalized(c: List<String>) = c.map { it.trim().uppercase() }
@@ -56,7 +57,7 @@ object Economy {
             BoxKind.PUNISH -> -minOf(area,15000)/2
             BoxKind.GRAB -> 30000L
             BoxKind.PROJECTILE -> area + b.speed*10L + (if(b.freeDirection) 2000 else 0) + (if(b.gravity) 6000 else 0) + (b.slots-1)*15000L
-            BoxKind.SOLID, BoxKind.GHOST -> area + (if(b.kind == BoxKind.SOLID) b.hp*20L else 0L) + b.behavior*1000L + b.effect*1000L*(if(b.harmfulToOwner) -1 else 1) + (if(b.gravity) 6000 else 0) + (b.slots-1)*15000L
+            BoxKind.SOLID, BoxKind.GHOST -> area + (if(b.kind == BoxKind.SOLID) b.hp*20L else 0L) + (if(b.behavior==15) 14 else b.behavior)*1000L + b.effect*1000L*(if(b.harmfulToOwner) -1 else 1) + (if(b.gravity) 6000 else 0) + (b.slots-1)*15000L
         }
         return raw*stats.reachCost/100
     }
@@ -68,12 +69,20 @@ object Economy {
         if(m.startup !in 1..600 || m.recovery !in 1..600) add("Frames fuera de rango")
         if(m.extra !in -50..100 || m.extra%5 != 0) add("Daño extra inválido")
         if(balance(m,s)<0) add("Saldo negativo")
-        if(m.boxes.isEmpty()) add("Falta una fuente de daño o movimiento")
+        if(m.boxes.none {it.kind in listOf(BoxKind.DAMAGE,BoxKind.PROJECTILE,BoxKind.GRAB,BoxKind.MOVEMENT,BoxKind.TELEPORT) || (it.kind in listOf(BoxKind.SOLID,BoxKind.GHOST) && it.effect==6)}) add("Falta una fuente de daño o movimiento")
+        if(m.kind==Kind.BASIC && (m.antiAir || m.antiGround)) add("Esta opción requiere Comando o Ulti")
+        if(m.kind!=Kind.ULTIMATE && m.invulnerable) add("La invulnerabilidad requiere Ulti")
+        if(m.powerPercent !in 50..100 || m.powerPercent%5!=0) add("Consumo de poder inválido")
         if(m.boxes.count { it.kind==BoxKind.TELEPORT }>1) add("Solo un teletransporte")
-        if(m.boxes.count { it.kind==BoxKind.MOVEMENT && !it.rival }>1) add("Solo un movimiento por entidad")
+        if(m.boxes.filter { it.kind==BoxKind.MOVEMENT }.groupBy { it.entity }.any {it.value.size>1}) add("Solo un movimiento por entidad")
         if(m.boxes.any { it.kind==BoxKind.GRAB } && m.boxes.size>1) add("El agarre es exclusivo")
+        if(m.boxes.any {it.kind==BoxKind.GRAB} && m.recovery>60) add("Recuperación máxima del agarre: 60")
         for(b in m.boxes) {
             if(b.slots !in 1..4) add("Cantidad inválida")
+            if(b.rect.w !in 20..800 || b.rect.h !in 20..800) add("Tamaño de hitbox inválido")
+            if(b.kind==BoxKind.DAMAGE && (b.rect.w<40 || b.rect.h<40)) add("Daño: mínimo 40×40")
+            if(b.kind !in listOf(BoxKind.DAMAGE,BoxKind.MOVEMENT,BoxKind.PUNISH,BoxKind.GRAB) && (abs(b.rect.x)>800 || abs(b.rect.y)>800)) add("Distancia máxima: 800 u")
+            if(b.speed !in 0..1800) add("Velocidad de proyectil inválida")
             if(b.kind in listOf(BoxKind.DAMAGE,BoxKind.MOVEMENT,BoxKind.PUNISH) && !b.rect.touches(body)) add("La hitbox debe tocar el personaje")
         }
     }
@@ -114,6 +123,8 @@ object Joystick {
 }
 class DoubleTap {
     private var previous=0; private val released=mutableMapOf<Int,Int>(); private var running=0
+    fun reset() {previous=0; released.clear(); running=0}
+    fun checksum() = previous*31+running*17+(released[-1] ?: 0)*13+(released[1] ?: 0)
     fun update(direction: Int,tick: Int): Boolean {
         if(direction!=previous) {
             if(previous!=0) released[previous]=tick

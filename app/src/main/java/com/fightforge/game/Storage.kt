@@ -4,13 +4,14 @@ import android.graphics.*
 import android.provider.MediaStore
 import android.content.ContentValues
 import com.fightforge.engine.*
+import com.fightforge.engine.Rect
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.util.UUID
 
-@Serializable data class Settings(val music: Int=65,val effects: Int=80,val vibration: Boolean=true,val opacity: Int=80,val hitboxes: Boolean=false,val inputs: Boolean=false)
+@Serializable data class Settings(val music: Int=65,val effects: Int=80,val vibration: Boolean=true,val opacity: Int=80,val hitboxes: Boolean=false,val inputs: Boolean=false,val menuTrack: String="",val fightTrack: String="")
 @Serializable data class SaveData(val schemaVersion: Int=1,val coins: Int=0,val purchased: Set<String> = setOf("default_0","default_1"),val settings: Settings=Settings(),val characters: List<FighterDef> = emptyList(),val stages: List<StageDef> = emptyList())
 @Serializable data class StageDef(val id: String,val name: String,val frames: List<String>,val fps: Int=12)
 class Storage(val context: Context) {
@@ -35,7 +36,19 @@ class Storage(val context: Context) {
   val uri=context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI,values) ?: error("No se pudo crear la imagen")
   try { context.contentResolver.openOutputStream(uri).use { requireNotNull(it); check(bitmap.compress(Bitmap.CompressFormat.PNG,100,it)) }; values.clear(); values.put(MediaStore.Images.Media.IS_PENDING,0); context.contentResolver.update(uri,values,null,null) } catch(e: Exception) { context.contentResolver.delete(uri,null,null); throw e }
  }
- fun template(f: FighterDef) {
+ fun movementTemplate(f: FighterDef,m: Move) {
+  val bounds=TemplateGeometry.movement(Rect(-f.width/2,-f.height,f.width,f.height),Rect(400,-400,200,400),m.boxes)
+  require(bounds.w in 1..4096 && bounds.h in 1..4096)
+  val bitmap=Bitmap.createBitmap(bounds.w,bounds.h,Bitmap.Config.ARGB_8888)
+  exportPng("${m.name}_lienzo.png",bitmap)
+  val canvas=Canvas(bitmap); canvas.translate(-bounds.x.toFloat(),-bounds.y.toFloat()); canvas.scale(2f,2f)
+  val paint=Paint().apply {style=Paint.Style.STROKE; strokeWidth=2f}
+  m.boxes.forEach {b -> paint.color=HitboxView.colors[b.kind.ordinal]; canvas.drawRect(b.rect.x.toFloat(),b.rect.y.toFloat(),(b.rect.x+b.rect.w).toFloat(),(b.rect.y+b.rect.h).toFloat(),paint)}
+  paint.color=android.graphics.Color.CYAN; canvas.drawRect(-f.width/2f,-f.height.toFloat(),f.width/2f,0f,paint)
+  exportPng("${m.name}_guia.png",bitmap); bitmap.recycle()
+ }
+ fun template(f: FighterDef,slot: String="quieto") {
+  if(slot=="foto") {val b=Bitmap.createBitmap(256,256,Bitmap.Config.ARGB_8888); exportPng("${f.name}_foto_lienzo.png",b); val p=Paint().apply {color=android.graphics.Color.CYAN; style=Paint.Style.STROKE; strokeWidth=2f}; Canvas(b).drawRect(1f,1f,255f,255f,p); exportPng("${f.name}_foto_guia.png",b); b.recycle(); return}
   val t=TemplateGeometry.cached(f.width,f.height); val clear=Bitmap.createBitmap(t.pixelsWide,t.pixelsHigh,Bitmap.Config.ARGB_8888)
   exportPng("${f.name}_lienzo.png",clear)
   val canvas=Canvas(clear); val p=Paint(Paint.ANTI_ALIAS_FLAG).apply { color=android.graphics.Color.CYAN; style=Paint.Style.STROKE; strokeWidth=2f }
