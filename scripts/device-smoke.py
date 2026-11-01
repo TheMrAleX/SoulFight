@@ -63,11 +63,16 @@ def enter_text(text):
 
 def assert_toggle(label, expected):
     root=tree()
+    parents={child:parent for parent in root.iter() for child in parent}
     for n in root.iter('node'):
-        if n.get('text')==label and n.get('checkable')=='true':
-            assert (n.get('checked')=='true')==expected, f'{label}: incorrect checked state'
+        if n.get('text')==label:
+            control=n
+            while control is not None and control.get('checkable')!='true':
+                control=parents.get(control)
+            assert control is not None, f'Missing accessible toggle: {label}'
+            assert (control.get('checked')=='true')==expected, f'{label}: incorrect checked state'
             return
-    raise AssertionError(f'Missing accessible toggle: {label}')
+    raise AssertionError(f'Missing accessible toggle label: {label}')
 
 def run():
     adb('shell', 'am', 'force-stop', 'com.fightforge.game')
