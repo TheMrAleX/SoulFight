@@ -69,4 +69,11 @@ class AirCombatTest {
   assertEquals(1000*SCALE,g.fighters[0].x); assertEquals(1600*SCALE,g.fighters[1].x)
  }
 
+ @Test fun restartingMatchRestoresAFreshStateIncludingAttackHistory() {
+  val f=fighter().copy(moves=listOf(Move("DISPARO",listOf("A"),startup=1,recovery=80,boxes=listOf(Box(BoxKind.PROJECTILE,Rect(100,-260,80,80),speed=900)))))
+  val g=Combat(f,f,practice=true); val initial=g.checksum(); g.fighters[1].x=1200*SCALE
+  g.step(Input(buttons=1),Input()); g.step(Input(),Input()); assertTrue(g.lastHitTick>0)
+  g.reset(); assertEquals(initial,g.checksum()); assertTrue(g.lastHitTick<0); assertTrue(g.lastGrabClash<0)
+ }
+
 }

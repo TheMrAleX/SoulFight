@@ -11,21 +11,22 @@ class Fighter(val definition: FighterDef,var x: Int) {
     var relativeMotion=0; var grabbedBy=-1; var grabTarget=-1; var combo=0; var dizzy=0; var previousButtons=0; var previousDirection=""; var invulnerable=0
     val hitObjects=mutableSetOf<Int>(); val history=mutableListOf<Pair<Int,String>>(); val tap=DoubleTap()
     val body get()=Rect(x-definition.width*SCALE/2,y-definition.height*SCALE,definition.width*SCALE,definition.height*SCALE)
-    fun reset(position: Int) {relativeMotion=0; animationAge=0; x=position; y=FLOOR; vy=0; hp=definition.stats.maxHp; power=0; state=State.IDLE; timer=0; move=null; attackFrame=0; struck=false; grabbedBy=-1; grabTarget=-1; combo=0; dizzy=0; tap.reset(); history.clear(); previousButtons=0; previousDirection=""; invulnerable=0 }
+    fun reset(position: Int) {facing=1; hitObjects.clear(); relativeMotion=0; animationAge=0; x=position; y=FLOOR; vy=0; hp=definition.stats.maxHp; power=0; state=State.IDLE; timer=0; move=null; attackFrame=0; struck=false; grabbedBy=-1; grabTarget=-1; combo=0; dizzy=0; tap.reset(); history.clear(); previousButtons=0; previousDirection=""; invulnerable=0 }
 }
 data class Spawn(val owner: Int,val kind: BoxKind,var x: Int,var y: Int,val w: Int,val h: Int,var vx: Int,var vy: Int,val gravity: Boolean,var life: Int,val damage: Int,val serial: Int,var hp: Int=50,val behavior: Int=0,val effect: Int=6,val harmfulToOwner: Boolean=false,val both: Boolean=false,val photo: String="",val originX: Int=x,var cooldown: Int=0)
 class Combat(val one: FighterDef,val two: FighterDef,val seed: Int=42,val practice: Boolean=false) {
     val fighters=arrayOf(Fighter(one,1000*SCALE),Fighter(two,1600*SCALE))
+    init {fighters[1].facing=-1}
     var lastHitTick=-100; var lastHitTarget=0; var lastHitBlocked=false; var lastGrabClash=-100; var superPause=0; var cinematicOwner=0; var tick=0; var round=1; var seconds=99; val wins=intArrayOf(0,0); var roundOver=false; var winner=-1; var matchOver=false
     val spawns=mutableListOf<Spawn>(); private var serial=0
     var infiniteLife=practice; var dummy=0
-    fun nextRound() { if(matchOver) return; round++; roundOver=false; winner=-1; seconds=99; roundStart=tick; fighters[0].reset(1000*SCALE); fighters[1].reset(1600*SCALE); spawns.clear() }
+    fun nextRound() { if(matchOver) return; round++; roundOver=false; winner=-1; seconds=99; roundStart=tick; fighters[0].reset(1000*SCALE); fighters[1].reset(1600*SCALE); fighters[1].facing=-1; spawns.clear() }
     fun resetPositions() {
-        fighters.forEachIndexed {index,f -> val hp=f.hp; val power=f.power; f.reset((if(index==0) 1000 else 1600)*SCALE); f.hp=hp; f.power=power}
+        fighters.forEachIndexed {index,f -> val hp=f.hp; val power=f.power; f.reset((if(index==0) 1000 else 1600)*SCALE); f.hp=hp; f.power=power; f.facing=if(index==0) 1 else -1}
         spawns.clear(); superPause=0; lastHitTick=-100; lastGrabClash=-100
     }
     private var roundStart=0
-    fun reset() { superPause=0; tick=0; round=1; seconds=99; wins.fill(0); roundOver=false; matchOver=false; winner=-1; roundStart=0; fighters[0].reset(1000*SCALE); fighters[1].reset(1600*SCALE); spawns.clear() }
+    fun reset() {serial=0; cinematicOwner=0; lastHitTick=-100; lastHitTarget=0; lastHitBlocked=false; lastGrabClash=-100; superPause=0; tick=0; round=1; seconds=99; wins.fill(0); roundOver=false; matchOver=false; winner=-1; roundStart=0; fighters[0].reset(1000*SCALE); fighters[1].reset(1600*SCALE); fighters[1].facing=-1; spawns.clear() }
     fun step(a: Input,b: Input) {
         if(roundOver || matchOver) return
         tick++; if(superPause>0) {superPause--; roundStart++; return}; val inputs=arrayOf(a,b)

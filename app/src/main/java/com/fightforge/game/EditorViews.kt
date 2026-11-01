@@ -24,10 +24,12 @@ class HitboxView(context: Context,val fighter: FighterDef,var boxes: List<Box>,v
  private fun point(x: Float,y: Float)=((x-width*.35f)/scale()).toInt() to ((y-height*.9f)/scale()).toInt()
  private fun scale()=min(width/1200f,height/950f)
  override fun onDraw(c: Canvas) {c.drawColor(0xFF141B2D.toInt()); c.save(); c.translate(width*.35f,height*.9f); c.scale(scale(),scale()); ProceduralSprites.fighter(c,0f,0f,fighter.width.toFloat(),fighter.height.toFloat(),fighter.color,State.IDLE,0,1); ProceduralSprites.fighter(c,500f,0f,200f,400f,1,State.IDLE,0,-1); p.style=Paint.Style.STROKE; p.strokeWidth=5f
+  p.color=0xFF1A237E.toInt(); c.drawRect(-fighter.width/2f,-fighter.height.toFloat(),fighter.width/2f,0f,p)
+  p.color=0xFFFFB300.toInt(); c.drawRect(400f,-400f,600f,0f,p)
   boxes.forEach {b -> p.color=colors[b.kind.ordinal]; c.drawRect(b.rect.x.toFloat(),b.rect.y.toFloat(),(b.rect.x+b.rect.w).toFloat(),(b.rect.y+b.rect.h).toFloat(),p)
    if(b.kind==BoxKind.MOVEMENT) {val (dx,dy)=MotionGeometry.displacement(b.rect,MotionGeometry.body(fighter.width,fighter.height)); c.drawLine(0f,-fighter.height/2f,dx.toFloat(),-fighter.height/2f+dy,p); val endX=dx.toFloat(); val endY=-fighter.height/2f+dy; val angle=atan2(dy.toFloat(),dx.toFloat()); for(side in listOf(-1,1)) c.drawLine(endX,endY,endX-26*cos(angle+side*.5f),endY-26*sin(angle+side*.5f),p)}
   }
-  if(selected in boxes.indices) {val r=boxes[selected].rect; p.style=Paint.Style.FILL; p.color=Color.WHITE; listOf(r.x to r.y+r.h/2,r.x+r.w to r.y+r.h/2,r.x+r.w/2 to r.y,r.x+r.w/2 to r.y+r.h).forEach {(x,y) -> c.drawCircle(x.toFloat(),y.toFloat(),14f,p)}; p.style=Paint.Style.STROKE}
+  if(selected in boxes.indices && boxes[selected].kind!=BoxKind.GRAB) {val r=boxes[selected].rect; p.style=Paint.Style.FILL; p.color=Color.WHITE; listOf(r.x to r.y+r.h/2,r.x+r.w to r.y+r.h/2,r.x+r.w/2 to r.y,r.x+r.w/2 to r.y+r.h).forEach {(x,y) -> c.drawCircle(x.toFloat(),y.toFloat(),14f,p)}; p.style=Paint.Style.STROKE}
   val a=down; val b=current; if(a!=null && b!=null) {p.color=colors[kind().ordinal]; c.drawRect(min(a.first,b.first).toFloat(),min(a.second,b.second).toFloat(),max(a.first,b.first).toFloat(),max(a.second,b.second).toFloat(),p)}; c.restore()
  }
  override fun onTouchEvent(e: MotionEvent): Boolean {

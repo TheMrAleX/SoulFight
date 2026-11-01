@@ -101,6 +101,15 @@ def run():
     adb('shell', 'input', 'tap', str(int(x)), str(int(y)))
     tap('LISTA DE MOVIMIENTOS')
     tap('CERRAR')
+    tap('REINICIAR')
+    time.sleep(2)
+    raw=adb('exec-out','screencap')
+    rw,rh,fmt=struct.unpack('<III',raw[:12])
+    assert fmt==1 and len(raw)>=rw*rh*4+12, 'Unexpected Android framebuffer format'
+    colors={tuple(raw[i:i+3]) for i in range(12,len(raw)-4,4096)}
+    assert len({c for c in colors if len(set(c))>1})>=8, 'Blank combat surface after restart'
+    (out/'combat-restarted.png').write_bytes(adb('exec-out','screencap','-p'))
+    adb('shell','input','tap',str(int(x)),str(int(y)))
     tap('CONTINUAR')
     time.sleep(2)
     adb('shell', 'input', 'tap', str(int(x)), str(int(y)))
@@ -156,7 +165,7 @@ def run():
     (out/'runtime.log').write_text(logs)
     assert 'Process: com.fightforge.game' not in logs, logs
     assert adb('shell', 'pidof', 'com.fightforge.game').strip(), 'The app exited'
-    (out/'result.txt').write_text('PASS: menu → selection → setup → combat → pause → moves → resume → create character → paint photo and idle → save and list; shop confirmation/cancel; practice toggles; landscape; no app fatal exception.\n')
+    (out/'result.txt').write_text('PASS: menu → selection → setup → combat → pause → moves → resume → create character → paint photo and idle → save and list; restart with rendered framebuffer; shop confirmation/cancel; practice toggles; landscape; no app fatal exception.\n')
     print((out/'result.txt').read_text())
 
 try:
