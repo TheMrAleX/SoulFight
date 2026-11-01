@@ -5,7 +5,7 @@ import android.view.*
 import com.fightforge.engine.*
 import kotlin.math.*
 
-class FightView(context: Context,val game: Combat,val ai: Ai,val settings: Settings,val stage: Int,val audio: ProceduralAudio,val paused: ()->Unit,val finished: (Int)->Unit): SurfaceView(context),SurfaceHolder.Callback,Runnable {
+class FightView(context: Context,val game: Combat,val ai: Ai,val settings: Settings,val stage: Int,val audio: ProceduralAudio,val paused: ()->Unit,val finished: (Int)->Unit,val network: NetworkMatch?=null,val networkError: (String)->Unit={}): SurfaceView(context),SurfaceHolder.Callback,Runnable {
  @Volatile private var running=false
  private var worker: Thread?=null
  private val pointerPositions=mutableMapOf<Int,Pair<Float,Float>>()
@@ -23,7 +23,11 @@ class FightView(context: Context,val game: Combat,val ai: Ai,val settings: Setti
    while(accumulator>=step) {
     val before=game.fighters.sumOf { it.hp }
     val dummy=when(game.dummy) { 1 -> Input(vertical=1); 2 -> Input(vertical=-1); 3 -> Input(horizontal=-game.fighters[1].facing); else -> Input() }
-    game.step(input,if(game.practice) dummy else ai.input(game,1)); accumulator-=step
+    try {
+     if(network!=null) { val pair=network.exchange(input,game); game.step(pair.first,pair.second) }
+     else game.step(input,if(game.practice) dummy else ai.input(game,1))
+    } catch(e: Exception) { running=false; post {networkError(e.message ?: "Conexión perdida")}; break }
+    accumulator-=step
     if(game.fighters.sumOf { it.hp }<before) audio.effect("hit",settings.effects)
    }
    var canvas: Canvas?=null
