@@ -15,15 +15,19 @@ import android.widget.ImageView
 import java.io.File
 import java.util.UUID
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 @Composable fun StageEditor(store: Storage,back: ()->Unit,message: (String)->Unit) {
+ val scope=rememberCoroutineScope()
  var stage by remember {mutableStateOf(StageDef(UUID.randomUUID().toString(),"",emptyList()))}
  var request by remember {mutableStateOf<ImportRequest?>(null)}
  var deleting by remember {mutableStateOf<StageDef?>(null)}
  var tick by remember {mutableIntStateOf(0)}
  LaunchedEffect(stage.fps,stage.frames) {while(true){delay(1000L/stage.fps); tick++}}
  val images=rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) {uris -> if(uris.isNotEmpty()) request=ImportRequest(uris.take(12),"stages/${stage.id}",1920,1080){stage=stage.copy(frames=it)}}
- val audio=rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) {uri -> if(uri!=null) runCatching {stage=stage.copy(music=store.importAudio(uri,"stages/${stage.id}"))}.onFailure {message(it.message ?: "Audio no válido")}}
+ val audio=rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) {uri -> if(uri!=null) scope.launch {runCatching {val path=withContext(Dispatchers.IO){store.importAudio(uri,"stages/${stage.id}")}; stage=stage.copy(music=path)}.onFailure {message(it.message ?: "Audio no válido")}}}
  Frame("FONDOS",back,action={ForgeButton("GUARDAR"){if(stage.name.isBlank() || stage.frames.isEmpty()) message("Nombre y al menos una imagen requeridos") else {store.update(store.data.copy(stages=store.data.stages.filterNot {it.id==stage.id}+stage)); message("Fondo guardado")}}}) {
   Row(Modifier.weight(1f),horizontalArrangement=Arrangement.spacedBy(16.dp)) {
    Column(Modifier.weight(.35f).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(8.dp)) {
@@ -58,10 +62,11 @@ import kotlinx.coroutines.delay
  }
 }
 @Composable fun MusicLibrary(store: Storage,message: (String)->Unit) {
+ val scope=rememberCoroutineScope()
  var name by remember {mutableStateOf("")}; var selected by remember {mutableStateOf<File?>(null)}; var revision by remember {mutableIntStateOf(0)}
  var player by remember {mutableStateOf<android.media.MediaPlayer?>(null)}
  DisposableEffect(Unit){onDispose {player?.release()}}
- val audio=rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) {uri -> if(uri!=null) runCatching {selected=File(store.importAudio(uri,"music")); name="PISTA ${revision+1}"; revision++}.onFailure {message(it.message ?: "Audio incompatible")}}
+ val audio=rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) {uri -> if(uri!=null) scope.launch {runCatching {selected=withContext(Dispatchers.IO){File(store.importAudio(uri,"music"))}; name="PISTA ${revision+1}"; revision++}.onFailure {message(it.message ?: "Audio incompatible")}}}
  val files=remember(revision){File(store.context.filesDir,"music").listFiles()?.filter {it.extension=="audio"}?.sortedBy {it.name}.orEmpty()}
  Row(Modifier.fillMaxSize(),horizontalArrangement=Arrangement.spacedBy(16.dp)) {
   Column(Modifier.weight(.35f).verticalScroll(rememberScrollState())) {
@@ -80,11 +85,12 @@ import kotlinx.coroutines.delay
  }
 }
 @Composable fun EffectLibrary(store: Storage,message: (String)->Unit) {
+ val scope=rememberCoroutineScope()
  var effect by remember {mutableStateOf(EffectDef(UUID.randomUUID().toString(),"",emptyList()))}
  var request by remember {mutableStateOf<ImportRequest?>(null)}; var tick by remember {mutableIntStateOf(0)}
  LaunchedEffect(effect.fps,effect.frames){while(true){delay(1000L/effect.fps); tick++}}
  val images=rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) {uris -> if(uris.isNotEmpty()) request=ImportRequest(uris.take(12),"effects/${effect.id}",256,256){effect=effect.copy(frames=it)}}
- val audio=rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) {uri -> if(uri!=null) runCatching {effect=effect.copy(sound=store.importAudio(uri,"effects/${effect.id}"))}.onFailure {message(it.message ?: "Audio incompatible")}}
+ val audio=rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) {uri -> if(uri!=null) scope.launch {runCatching {val path=withContext(Dispatchers.IO){store.importAudio(uri,"effects/${effect.id}")}; effect=effect.copy(sound=path)}.onFailure {message(it.message ?: "Audio incompatible")}}}
  Row(Modifier.fillMaxSize(),horizontalArrangement=Arrangement.spacedBy(16.dp)) {
   Column(Modifier.weight(.35f).verticalScroll(rememberScrollState())) {ForgeButton("CREAR EFECTO"){effect=EffectDef(UUID.randomUUID().toString(),"",emptyList())}; Text("INCLUIDOS: CHISPAS, IMPACTO Y AURA"); store.data.effectsLibrary.forEach {e -> TextButton({effect=e}){Text(e.name)}}}
   Column(Modifier.weight(.65f).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(8.dp)) {

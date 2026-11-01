@@ -77,8 +77,8 @@ def run():
     scale = min(width/1920, height/1080)
     x = (width-1920*scale)/2+960*scale
     density_text = adb("shell", "wm", "density").decode()
-density = int(re.findall(r"\d+", density_text)[-1])/160
-y = (height-1080*scale)/2+124*density
+    density = int(re.findall(r"\d+", density_text)[-1])/160
+    y = (height-1080*scale)/2+124*density
     adb('shell', 'input', 'tap', str(int(x)), str(int(y)))
     tap('LISTA DE MOVIMIENTOS')
     tap('CERRAR')

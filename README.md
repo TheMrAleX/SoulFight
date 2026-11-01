@@ -31,17 +31,23 @@ LAN utiliza WiFi local, descubrimiento NSD `_fightforge._tcp`, conexión TCP, re
 La firma se conserva fuera del repositorio en `/workspace/fightforge-signing/release.p12`, con contraseña en el archivo privado `store-password` del mismo directorio. Ambos tienen permisos restringidos. Conservar el entorno/su copia de seguridad es necesario para seguir firmando actualizaciones. No borrar datos de la aplicación para actualizar una release firmada con la misma clave.
 
 ```sh
-scripts/release.sh 0.1.1
+scripts/release.sh 0.2.0
 ```
 
 El script exige un checkout limpio, ejecuta tests, construye y verifica el APK firmado, sube main y crea la release preliminar con checksum, directamente o a través del workflow de publicación de artefactos verificados. `versionCode` usa el número de commits: mantener historial ascendente sin reiniciarlo. Los APK debug utilizan una firma distinta y no actualizan una instalación release.
 
 GitHub Actions construye tests y APK debug en pushes y PR. Para firmar tags requiere secretos `FIGHTFORGE_KEYSTORE_BASE64` y `FIGHTFORGE_STORE_PASSWORD`. La integración actual responde HTTP 403 al guardarlos; la clave local está disponible y la publicación usa un APK ya firmado en una rama `release-artifacts/vX.Y.Z` y el token propio de Actions cuando la subida directa está restringida. La clave privada no se sube.
 
-## Alcance de esta versión preliminar
+## Editores y recursos
 
-Esta versión todavía no cumple toda la especificación comercial. El pixel editor tiene lápiz, borrador, relleno, línea, rectángulo, cuentagotas, historial, paleta HSV y zoom/paneo; faltan onion skin y una tira de animación con reproducción integrada. No están completos los efectos personalizados con sonido/escala/asignación, las migraciones entre esquemas futuros, el intercambio LAN de escenarios, y la configuración avanzada de sonidos en efectos. La importación de sprites se escala al renderizar y todavía no ofrece el diálogo de ajuste de dimensiones. Faltan el pulido de transiciones, previews Compose de los tres tamaños y parte de la presentación avanzada del HUD.
+FABRICAR integra lápiz, borrador, relleno, línea, rectángulo, cuentagotas, paleta de 32 colores y HSV, zoom/paneo, 50 pasos de deshacer/rehacer, guía, onion skin al 30%, tira de hasta 24 frames y reproducción con FPS configurables. Las importaciones PNG validan medidas y ofrecen AJUSTAR/CANCELAR; los lienzos se limitan a 4096 píxeles por lado.
 
-Las pruebas de motor y compilación no equivalen a una certificación de rendimiento en teléfonos ni a una validación LAN con dos dispositivos físicos. TRACEABILITY.md distingue cobertura automatizada y comprobaciones manuales.
+Los efectos admiten 1–12 frames, escala, FPS y sonido, con asignación al golpear/recibir daño. Los escenarios admiten hasta 12 frames y música propia. Se pueden importar, previsualizar y restablecer barras y los seis elementos de controles. La persistencia migra datos del esquema inicial, aísla personajes dañados y recupera sus archivos individuales si el índice global se corrompe.
 
-El código de `main` incluye una corrección posterior para hashes de paquetes LAN estables. Junto con correcciones posteriores de carrera, contraste y HUD, se validó localmente con 24 pruebas; todavía no está incluida en el APK publicado v0.1.0.
+LAN utiliza el protocolo FFG2: ambos jugadores deben instalar la misma versión. El anfitrión elige escenario; los personajes, imágenes, efectos, fondos y música asociada se transfieren con SHA-256 y caché verificada. Se admiten descubrimiento NSD, IP/puerto y código de sala IPv4. El código representa una dirección local: los dispositivos deben compartir red WiFi y permitir conexiones entre clientes.
+
+## Verificación
+
+`./gradlew test assembleDebug assembleDebugAndroidTest` ejecuta los tests del motor y construye aplicación e instrumentación. GitHub Actions arranca Android 10 con aceleración para probar navegación, combate, pausa, creación y dibujo de personajes. La instrumentación usa dos conexiones TCP reales en el emulador para comparar 3600 ticks, transferir recursos, reutilizar/reparar caché y comprobar persistencia y herramientas de píxeles. Los resultados y capturas quedan como artefactos de Actions.
+
+TRACEABILITY.md relaciona los 36 requisitos duros con código, pruebas y revisiones manuales. El emulador no acredita 60 FPS en teléfonos de gama media ni descubrimiento WiFi entre dos dispositivos físicos; esas comprobaciones necesitan ese hardware. No se ha sustituido ninguna de ellas por un resultado inventado.
