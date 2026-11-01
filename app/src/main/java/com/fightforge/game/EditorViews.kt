@@ -19,12 +19,13 @@ class SizeView(context: Context,var bodyWidth: Int,var bodyHeight: Int,val chang
  override fun onTouchEvent(e: MotionEvent): Boolean { when(e.actionMasked) {MotionEvent.ACTION_DOWN -> {handle=handles().indices.minBy {i -> hypot(e.x-handles()[i].first,e.y-handles()[i].second)}; parent.requestDisallowInterceptTouchEvent(true)}; MotionEvent.ACTION_MOVE -> { val s=scale(); if(handle in 0..1) bodyWidth=(abs(e.x-width/2f)*2/s).toInt().coerceIn(100,400) else bodyHeight=(abs(e.y-height*.94f)/s).toInt().coerceIn(200,800); change(bodyWidth,bodyHeight); invalidate() }; MotionEvent.ACTION_UP,MotionEvent.ACTION_CANCEL -> {handle=-1; parent.requestDisallowInterceptTouchEvent(false)} }; return true }
 }
 class HitboxView(context: Context,val fighter: FighterDef,var boxes: List<Box>,val kind: ()->BoxKind,val add: (Rect)->Unit,val edit: (Int,Rect)->Unit,val select: (Int)->Unit): View(context) {
+ init {contentDescription="LIENZO DE HITBOXES"}
  private val p=Paint(Paint.ANTI_ALIAS_FLAG); var selected=-1; private var down: Pair<Int,Int>?=null; private var current: Pair<Int,Int>?=null; private var original: Rect?=null; private var handle=-1
  private fun point(x: Float,y: Float)=((x-width*.35f)/scale()).toInt() to ((y-height*.9f)/scale()).toInt()
  private fun scale()=min(width/1200f,height/950f)
  override fun onDraw(c: Canvas) {c.drawColor(0xFF141B2D.toInt()); c.save(); c.translate(width*.35f,height*.9f); c.scale(scale(),scale()); ProceduralSprites.fighter(c,0f,0f,fighter.width.toFloat(),fighter.height.toFloat(),fighter.color,State.IDLE,0,1); ProceduralSprites.fighter(c,500f,0f,200f,400f,1,State.IDLE,0,-1); p.style=Paint.Style.STROKE; p.strokeWidth=5f
   boxes.forEach {b -> p.color=colors[b.kind.ordinal]; c.drawRect(b.rect.x.toFloat(),b.rect.y.toFloat(),(b.rect.x+b.rect.w).toFloat(),(b.rect.y+b.rect.h).toFloat(),p)
-   if(b.kind==BoxKind.MOVEMENT) {val (dx,dy)=MotionGeometry.displacement(b.rect,MotionGeometry.body(fighter.width,fighter.height)); c.drawLine(0f,-fighter.height/2f,dx.toFloat(),-fighter.height/2f+dy,p); c.drawCircle(dx.toFloat(),-fighter.height/2f+dy,10f,p)}
+   if(b.kind==BoxKind.MOVEMENT) {val (dx,dy)=MotionGeometry.displacement(b.rect,MotionGeometry.body(fighter.width,fighter.height)); c.drawLine(0f,-fighter.height/2f,dx.toFloat(),-fighter.height/2f+dy,p); val endX=dx.toFloat(); val endY=-fighter.height/2f+dy; val angle=atan2(dy.toFloat(),dx.toFloat()); for(side in listOf(-1,1)) c.drawLine(endX,endY,endX-26*cos(angle+side*.5f),endY-26*sin(angle+side*.5f),p)}
   }
   if(selected in boxes.indices) {val r=boxes[selected].rect; p.style=Paint.Style.FILL; p.color=Color.WHITE; listOf(r.x to r.y+r.h/2,r.x+r.w to r.y+r.h/2,r.x+r.w/2 to r.y,r.x+r.w/2 to r.y+r.h).forEach {(x,y) -> c.drawCircle(x.toFloat(),y.toFloat(),14f,p)}; p.style=Paint.Style.STROKE}
   val a=down; val b=current; if(a!=null && b!=null) {p.color=colors[kind().ordinal]; c.drawRect(min(a.first,b.first).toFloat(),min(a.second,b.second).toFloat(),max(a.first,b.first).toFloat(),max(a.second,b.second).toFloat(),p)}; c.restore()
@@ -45,7 +46,7 @@ class HitboxView(context: Context,val fighter: FighterDef,var boxes: List<Box>,v
     else when(handle) {0 -> old.copy(x=pos.first,w=(old.x+old.w-pos.first).coerceIn(20,800)); 1 -> old.copy(w=(pos.first-old.x).coerceIn(20,800)); 2 -> old.copy(y=pos.second,h=(old.y+old.h-pos.second).coerceIn(20,800)); 3 -> old.copy(h=(pos.second-old.y).coerceIn(20,800)); else -> old.copy(x=old.x+pos.first-a.first,y=old.y+pos.second-a.second)}
     val type=if(old==null) kind() else boxes[selected].kind
     if(type in listOf(BoxKind.DAMAGE,BoxKind.MOVEMENT,BoxKind.PUNISH)) r=MotionGeometry.snap(r,MotionGeometry.body(fighter.width,fighter.height))
-    if(type==BoxKind.TELEPORT) r=r.copy(w=fighter.width,h=fighter.height)
+    if(type==BoxKind.TELEPORT) {val rival=old!=null && boxes[selected].rival; r=r.copy(w=if(rival) 200 else fighter.width,h=if(rival) 400 else fighter.height)}
     if(type==BoxKind.GRAB) r=MotionGeometry.grab(fighter.width,fighter.height,fighter.stats.reach)
     if(old==null) add(r) else edit(selected,r)
     down=null; current=null; original=null; parent.requestDisallowInterceptTouchEvent(false); invalidate()

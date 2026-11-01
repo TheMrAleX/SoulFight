@@ -99,9 +99,8 @@ class Storage(val context: Context) {
   val canvas=Canvas(bitmap); canvas.scale(factor,factor); canvas.translate(-bounds.x.toFloat(),-bounds.y.toFloat()); canvas.scale(2f,2f)
   val paint=Paint(Paint.ANTI_ALIAS_FLAG).apply {style=Paint.Style.STROKE; strokeWidth=2f}
   fun rect(r: Rect,color: Int){paint.color=color; canvas.drawRect(r.x.toFloat(),r.y.toFloat(),(r.x+r.w).toFloat(),(r.y+r.h).toFloat(),paint)}
-  val move=m.boxes.firstOrNull {it.kind==BoxKind.MOVEMENT && it.entity=="player"}; val delta=move?.let {MotionGeometry.displacement(it.rect,body)} ?: (0 to 0)
-  val end=m.boxes.firstOrNull {it.kind==BoxKind.TELEPORT && !it.rival}?.rect ?: body.copy(x=body.x+delta.first,y=body.y+delta.second)
-  rect(body,0xFF1A237E.toInt()); rect(end,0xFF1A237E.toInt()); rect(rival,0xFFFFB300.toInt())
+  val end=MotionGeometry.extreme(body,body,m.boxes,false); val rivalEnd=MotionGeometry.extreme(body,rival,m.boxes,true)
+  rect(body,0xFF1A237E.toInt()); rect(end,0xFF1A237E.toInt()); rect(rival,0xFFFFB300.toInt()); rect(rivalEnd,0xFFFFB300.toInt())
   m.boxes.forEach {box -> rect(box.rect,HitboxView.colors[box.kind.ordinal]); rect(box.rect.copy(x=box.rect.x+end.x-body.x,y=box.rect.y+end.y-body.y),HitboxView.colors[box.kind.ordinal])}
   paint.style=Paint.Style.FILL; paint.textSize=12f; var line=bounds.y/2f+18
   listOf("PERSONAJE / RIVAL","ROJO: DAÑO · CELESTE: RECORRIDO","BLANCO: DESTINO · NARANJA: CASTIGO","VERDE: OBJETO · TURQUESA: PROYECTIL","MAGENTA: TRANSLÚCIDO · CAFÉ: AGARRE").forEach {paint.color=0xFFF2F5FF.toInt(); canvas.drawText(it,bounds.x/2f+8,line,paint); line+=16}

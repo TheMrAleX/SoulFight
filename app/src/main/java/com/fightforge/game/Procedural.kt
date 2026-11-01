@@ -43,7 +43,17 @@ object ProceduralSprites {
  }
 }
 class ProceduralAudio(val context: Context) {
- private val pool=SoundPool.Builder().setMaxStreams(6).build(); private val sounds=mutableMapOf<String,Int>(); private var player: MediaPlayer?=null
+ private val pool=SoundPool.Builder().setMaxStreams(6).build(); private val sounds=java.util.concurrent.ConcurrentHashMap<String,Int>(); private var player: MediaPlayer?=null
+ private val ready=java.util.concurrent.ConcurrentHashMap.newKeySet<Int>()
+ private val pending=java.util.concurrent.ConcurrentHashMap<Int,Float>()
+ @Volatile private var closed=false
+ init {pool.setOnLoadCompleteListener {_,id,status -> if(!closed && status==0){ready.add(id); pending.remove(id)?.let {volume -> pool.play(id,volume,volume,1,0,1f)}} else pending.remove(id)}}
+ private fun play(id: Int,volume: Int) {
+  if(closed || id<=0) return
+  val level=volume.coerceIn(0,100)/100f
+  if(id in ready) pool.play(id,level,level,1,0,1f)
+  else {pending[id]=level; if(id in ready) pending.remove(id)?.let {pool.play(id,it,it,1,0,1f)}}
+ }
  fun prepare(progress: (Int)->Unit = {}) {
   val notes=doubleArrayOf(1.0,1.25,1.5,2.0); var completed=0
   val dir=File(context.filesDir,"audio").apply { mkdirs() }
@@ -61,12 +71,12 @@ class ProceduralAudio(val context: Context) {
  }
  fun custom(path: String,volume: Int) {
   if(path.isBlank()) return
-  val id=sounds[path]
-  if(id!=null) pool.play(id,volume/100f,volume/100f,1,0,1f)
-  else {pool.setOnLoadCompleteListener {_,loaded,status -> if(status==0 && loaded==sounds[path]) pool.play(loaded,volume/100f,volume/100f,1,0,1f)}; sounds[path]=pool.load(path,1)}
+  if(closed) return
+  play(sounds.computeIfAbsent(path){pool.load(it,1)},volume)
  }
+
  fun volume(value: Int){player?.setVolume(value/100f,value/100f)}
- fun effect(name: String,volume: Int) { sounds[name]?.let { pool.play(it,volume/100f,volume/100f,1,0,1f) } }
+ fun effect(name: String,volume: Int) { sounds[name]?.let {play(it,volume)} }
  fun music(combat: Boolean,volume: Int,track: String="") {
   player?.release(); player=null
   val fallback=File(context.filesDir,"audio/${if(combat) "combat" else "menu"}.wav").absolutePath
@@ -78,5 +88,5 @@ class ProceduralAudio(val context: Context) {
  }
  fun pause() { player?.pause() }
  fun resume() { player?.start() }
- fun close() { player?.release(); pool.release() }
+ fun close() {closed=true; player?.release(); pool.release(); pending.clear(); ready.clear(); sounds.clear()}
 }

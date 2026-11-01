@@ -104,18 +104,18 @@ val animationSlots=listOf("quieto","caminar adelante","caminar atrás","correr a
  BackHandler {if(drawing) drawing=false else back()}
  if(drawing) {
   Frame("DIBUJAR HITBOXES",{drawing=false},action={ForgeButton("BORRAR ÚLTIMA",secondary=true){if(m.boxes.isNotEmpty()) m=m.copy(boxes=m.boxes.dropLast(1))}}) {
-   Row(horizontalArrangement=Arrangement.spacedBy(4.dp),modifier=Modifier.horizontalScroll(rememberScrollState())) { BoxKind.entries.forEach { kind -> TextButton({boxKind=kind}){Text(kind.name,color=if(kind==boxKind) ForgeColors.gold else ForgeColors.secondary)} } }
+   HitboxPalette(boxKind,f.stats){boxKind=it}
    AndroidView(factory={ HitboxView(it,f,m.boxes,{boxKind},{rect ->
     val b=Box(boxKind,rect)
     if(boxKind==BoxKind.TELEPORT && m.boxes.any {it.kind==BoxKind.TELEPORT}) message("Solo se permite un teletransporte")
     else if(boxKind==BoxKind.GRAB && m.boxes.isNotEmpty()) pendingGrab=b else candidate(m.copy(boxes=if(boxKind==BoxKind.GRAB) listOf(b) else m.boxes+b))
    },{index,rect -> val list=m.boxes.toMutableList(); list[index]=list[index].copy(rect=rect); candidate(m.copy(boxes=list))},{index -> selected=index}) },update={it.boxes=m.boxes; it.selected=selected},modifier=Modifier.weight(1f).fillMaxWidth())
-   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.End) {ForgeButton("✕ BORRAR SELECCIONADA",enabled=selected in m.boxes.indices) {m=m.copy(boxes=m.boxes.filterIndexed {index,_ -> index!=selected}); selected=-1}}
+   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.End) {FloatingActionButton(onClick={if(selected in m.boxes.indices){m=m.copy(boxes=m.boxes.filterIndexed {index,_ -> index!=selected}); selected=-1} else message("Selecciona una hitbox para borrarla")},modifier=Modifier.size(56.dp),containerColor=ForgeColors.high,contentColor=ForgeColors.danger){Icon(ForgeIcons.Trash,"BORRAR HITBOX SELECCIONADA")}}
   }
   pendingGrab?.let {grab -> AlertDialog(onDismissRequest={pendingGrab=null},title={Text("AÑADIR AGARRE")},text={Text("Se eliminarán las otras hitboxes de este movimiento.")},confirmButton={TextButton({candidate(m.copy(boxes=listOf(grab))); pendingGrab=null}){Text("CONTINUAR")}},dismissButton={TextButton({pendingGrab=null}){Text("CANCELAR")}})}
   return
  }
- Frame("MOVIMIENTO · PUNTOS ${maxOf(0,Economy.balance(m,f.stats,body))/1000}",back,action={ForgeButton("GUARDAR") {
+ Frame("MOVIMIENTO · PUNTOS ${points(maxOf(0,Economy.balance(m,f.stats,body)))}",back,action={ForgeButton("GUARDAR") {
   val errors=Economy.errors(m,f.stats,Rect(-f.width/2,-f.height,f.width,f.height)).toMutableList()
   if(f.moves.any {it.name==m.name && it!==initial}) errors.add("Nombre duplicado")
   if(f.moves.any {Commands.normalized(it.command)==Commands.normalized(m.command) && it!==initial}) errors.add("Comando duplicado")
@@ -130,7 +130,7 @@ val animationSlots=listOf("quieto","caminar adelante","caminar atrás","correr a
     ForgeButton("DIBUJAR HITBOXES") {drawing=true}
     ForgeButton("VER ANIMACIÓN",secondary=true){preview=true}
     ForgeButton("DESCARGAR PLANTILLA",secondary=true){runCatching {store.movementTemplate(f,m)}.onSuccess {message("Plantilla guardada en la galería")}.onFailure {message("No se pudo exportar")}}
-    m.boxes.forEachIndexed { i,b -> Row { TextButton({selected=i}) {Text("${b.kind} ${b.rect.w}×${b.rect.h}",color=if(selected==i) ForgeColors.gold else ForgeColors.secondary)}; TextButton({m=m.copy(boxes=m.boxes.filterIndexed { j,_ -> i!=j }); selected=-1}){Text("✕")} } }
+    m.boxes.forEachIndexed { i,b -> Row { TextButton({selected=i}) {Text("${b.kind.title()} ${b.rect.w}×${b.rect.h}",color=if(selected==i) ForgeColors.gold else ForgeColors.secondary)}; TextButton({m=m.copy(boxes=m.boxes.filterIndexed { j,_ -> i!=j }); selected=-1}){Text("✕")} } }
    }
    Column(Modifier.weight(.62f).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(8.dp)) {
     OutlinedTextField(m.name,{m=m.copy(name=it.take(24))},label={Text("NOMBRE")})
@@ -140,14 +140,14 @@ val animationSlots=listOf("quieto","caminar adelante","caminar atrás","correr a
     if(selected in m.boxes.indices) {
      val box=m.boxes[selected]
      fun updateBox(next: Box) {val list=m.boxes.toMutableList(); list[selected]=next; candidate(m.copy(boxes=list))}
-     Text("HITBOX ${selected+1}: ${box.kind}",color=ForgeColors.gold)
+     Text("HITBOX ${selected+1}: ${box.kind.title()}",color=ForgeColors.gold)
      if(box.kind!=BoxKind.GRAB) {
      Counter("X",box.rect.x,-800,800,20){updateBox(box.copy(rect=box.rect.copy(x=it)))}
      Counter("Y",box.rect.y,-800,800,20){updateBox(box.copy(rect=box.rect.copy(y=it)))}
      if(box.kind!=BoxKind.TELEPORT) {Counter("ANCHO",box.rect.w,20,800,20){updateBox(box.copy(rect=box.rect.copy(w=it)))}
      Counter("ALTO",box.rect.h,20,800,20){updateBox(box.copy(rect=box.rect.copy(h=it)))}
      }}
-     if(box.kind in listOf(BoxKind.MOVEMENT,BoxKind.TELEPORT)) CheckRow("MOVER AL RIVAL",box.rival){updateBox(box.copy(rival=it))}
+     if(box.kind in listOf(BoxKind.MOVEMENT,BoxKind.TELEPORT)) CheckRow("MOVER AL RIVAL",box.rival){updateBox(box.copy(rival=it,rect=if(box.kind==BoxKind.TELEPORT) box.rect.copy(w=if(it) 200 else f.width,h=if(it) 400 else f.height) else box.rect))}
      if(box.kind==BoxKind.MOVEMENT) {
       CheckRow("IDA Y VUELTA",box.returnTrip){updateBox(box.copy(returnTrip=it))}
       listOf("player","projectile","solid","ghost").forEach {entity -> TextButton({updateBox(box.copy(entity=entity))}){Text(entity.uppercase(),color=if(entity==box.entity) ForgeColors.gold else ForgeColors.secondary)}}

@@ -105,11 +105,9 @@ data class TemplateGeometry(val width: Int,val height: Int) {
         @Synchronized fun cached(w: Int,h: Int) = cache.getOrPut(w to h) { TemplateGeometry(w,h) }
         fun movement(body: Rect,rival: Rect,boxes: List<Box>): Rect {
             var bounds=body.union(rival)
-            val movement=boxes.firstOrNull {it.kind==BoxKind.MOVEMENT && it.entity=="player"}
-            val (dx,dy)=movement?.let {MotionGeometry.displacement(it.rect,body)} ?: (0 to 0)
-            val teleport=boxes.firstOrNull {it.kind==BoxKind.TELEPORT && !it.rival}
-            val end=teleport?.rect?.let {Rect(it.x,it.y,body.w,body.h)} ?: body.copy(x=body.x+dx,y=body.y+dy)
-            bounds=bounds.union(end)
+            val end=MotionGeometry.extreme(body,body,boxes,false)
+            val rivalEnd=MotionGeometry.extreme(body,rival,boxes,true)
+            bounds=bounds.union(end).union(rivalEnd)
             for(b in boxes) {bounds=bounds.union(b.rect).union(b.rect.copy(x=b.rect.x+end.x-body.x,y=b.rect.y+end.y-body.y))}
             val mx=bounds.w*15/200; val my=bounds.h*15/200
             return Rect((bounds.x-mx)*2,(bounds.y-my)*2,(bounds.w+mx*2)*2,(bounds.h+my*2)*2)

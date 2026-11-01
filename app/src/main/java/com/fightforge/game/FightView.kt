@@ -49,7 +49,7 @@ class FightView(context: Context,val game: Combat,val ai: Ai,@Volatile var setti
      else game.step(input,if(game.practice) dummy else ai.input(game,1))
     } catch(e: Exception) { running=false; post {networkError(e.message ?: "Conexión perdida")}; break }
     accumulator-=step
-    if(game.lastHitTick==game.tick) {audio.effect(if(game.lastHitBlocked) "block" else "hit",settings.effects); val target=game.fighters[game.lastHitTarget]; library.effectsLibrary.firstOrNull {it.id==target.definition.hurtEffect}?.let {audio.custom(it.sound,settings.effects)}}
+    if(game.lastHitTick==game.tick) {audio.effect(if(game.lastHitBlocked) "block" else "hit",settings.effects); val target=game.fighters[game.lastHitTarget]; val attacker=game.fighters[1-game.lastHitTarget]; listOf(attacker.definition.hitEffect,target.definition.hurtEffect).distinct().forEach {id -> library.effectsLibrary.firstOrNull {it.id==id}?.let {audio.custom(it.sound,settings.effects)}}}
     if(game.superPause==60) audio.effect("ulti",settings.effects)
     if(game.fighters.any {it.hp==0} && game.fighters.sumOf {it.hp}<before) audio.effect("ko",settings.effects)
    }

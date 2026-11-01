@@ -9,6 +9,12 @@ object MotionGeometry {
         val dy = when { area.y < body.y -> area.y-body.y; area.y+area.h > body.y+body.h -> area.y+area.h-body.y-body.h; else -> 0 }
         return dx to dy
     }
+    fun extreme(body: Rect,subject: Rect,boxes: List<Box>,rival: Boolean): Rect {
+        val motion=boxes.firstOrNull {it.kind==BoxKind.MOVEMENT && it.entity=="player" && it.rival==rival}
+        val (dx,dy)=motion?.let {displacement(it.rect,body)} ?: (0 to 0)
+        val teleport=boxes.firstOrNull {it.kind==BoxKind.TELEPORT && it.rival==rival}
+        return if(teleport==null) subject.copy(x=subject.x+dx,y=subject.y+dy) else subject.copy(x=teleport.rect.x+(teleport.rect.w-subject.w)/2+dx,y=teleport.rect.y+teleport.rect.h-subject.h+dy)
+    }
     fun snap(rect: Rect, body: Rect): Rect {
         val edge = listOf(abs(rect.x-body.x-body.w),abs(rect.x+rect.w-body.x),abs(rect.y+rect.h-body.y),abs(rect.y-body.y-body.h)).withIndex().minBy { it.value }.index
         return when(edge) {
