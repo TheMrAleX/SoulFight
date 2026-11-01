@@ -22,6 +22,8 @@ import kotlinx.coroutines.delay
  val rawWidth=if(slot=="foto") 256 else f.animationSettings[slot]?.canvasWidth?.takeIf {it>0} ?: geometry.pixelsWide
  val rawHeight=if(slot=="foto") 256 else f.animationSettings[slot]?.canvasHeight?.takeIf {it>0} ?: geometry.pixelsHigh
  val fit=minOf(1f,4096f/rawWidth,4096f/rawHeight); val width=(rawWidth*fit).toInt().coerceAtLeast(1); val height=(rawHeight*fit).toInt().coerceAtLeast(1)
+ val config=f.animationSettings[slot]
+ val bodyGuide=if(config!=null && config.canvasWidth>0){com.fightforge.engine.Rect(((-f.width-config.offsetX)*fit).toInt(),((-2*f.height-config.offsetY)*fit).toInt(),(2*f.width*fit).toInt(),(2*f.height*fit).toInt())} else geometry.body
  val directory=remember {File(store.context.filesDir,"characters/${f.id}/animations/${slot.hashCode()}").apply {mkdirs()}}
  fun blank(): Bitmap=Bitmap.createBitmap(width,height,Bitmap.Config.ARGB_8888)
  fun read(path: String): Bitmap=BitmapFactory.decodeFile(path)?.let {original -> if(original.width==width && original.height==height) original.copy(Bitmap.Config.ARGB_8888,true).also {original.recycle()} else Bitmap.createScaledBitmap(original,width,height,true).also {if(it!==original) original.recycle()}} ?: blank()
@@ -45,7 +47,7 @@ import kotlinx.coroutines.delay
    TextButton({view?.undo()}){Text("↶")}; TextButton({view?.redo()}){Text("↷")}; CheckRow("GUÍA",guide){guide=it}; CheckRow("ONION 30%",onion){onion=it}
   }
   Row(Modifier.weight(1f)) {
-   key(bitmap) {AndroidView(factory={PixelView(it,bitmap).also {v -> view=v}},update={it.tool=tool; it.color=color; it.brush=brush; it.picked={c -> color=c}; it.onion=if(onion) previous else null; it.guide=if(guide && slot!="foto") geometry.body else null; it.editable=!playing; it.invalidate()},modifier=Modifier.weight(1f).fillMaxHeight())}
+   key(bitmap) {AndroidView(factory={PixelView(it,bitmap).also {v -> view=v}},update={it.tool=tool; it.color=color; it.brush=brush; it.picked={c -> color=c}; it.onion=if(onion) previous else null; it.guide=if(guide && slot!="foto") bodyGuide else null; it.editable=!playing; it.invalidate()},modifier=Modifier.weight(1f).fillMaxHeight())}
    Column(Modifier.width(150.dp).verticalScroll(rememberScrollState())) {
     Counter("PX",brush,1,16){brush=it}; Text("TONO"); Slider(hue,{hue=it; color=Color.HSVToColor(floatArrayOf(hue,saturation,brightness))},valueRange=0f..360f)
     Text("SATURACIÓN"); Slider(saturation,{saturation=it; color=Color.HSVToColor(floatArrayOf(hue,saturation,brightness))}); Text("BRILLO"); Slider(brightness,{brightness=it; color=Color.HSVToColor(floatArrayOf(hue,saturation,brightness))})

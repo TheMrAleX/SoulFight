@@ -19,10 +19,12 @@ object CharacterPackages {
   var total=0L
   ZipInputStream(ByteArrayInputStream(bytes)).use {zip -> var entry=zip.nextEntry; while(entry!=null) {require(!entry.isDirectory); val file=File(dir,entry.name); require(file.canonicalPath.startsWith(dir.canonicalPath+File.separator)); file.parentFile!!.mkdirs(); file.outputStream().use {out -> val buffer=ByteArray(8192); var n=zip.read(buffer); while(n>=0) {total+=n; require(total<=32*1024*1024){"Contenido descomprimido demasiado grande"}; out.write(buffer,0,n); n=zip.read(buffer)}}; zip.closeEntry(); entry=zip.nextEntry} }
   val raw=store.json.decodeFromString<FighterDef>(File(dir,"character.json").readText()); require(raw.schemaVersion in 0..1 && raw.stats.valid() && raw.name.isNotBlank() && raw.name.length<=16 && raw.width in 100..400 && raw.height in 200..800 && raw.moves.size<=128)
-  require(raw.moves.all {it.startup in 1..600 && it.recovery in 1..600 && Commands.valid(it.command,it.kind) && it.boxes.all {box -> box.slots in 1..4}})
+  require(raw.moves.all {Economy.errors(it,raw.stats,MotionGeometry.body(raw.width,raw.height)).isEmpty()})
+  require(raw.moves.map {Commands.normalized(it.command)}.distinct().size==raw.moves.size)
   fun resolve(path: String): String {val file=File(dir,path); require(file.canonicalPath.startsWith(dir.canonicalPath+File.separator) && file.isFile); return file.absolutePath}
   val effectFile=File(dir,"effects.json")
   val effects=if(effectFile.isFile) store.json.decodeFromString<List<EffectDef>>(effectFile.readText()) else emptyList()
+  require(effects.size<=128 && effects.all {it.id.matches(Regex("[A-Za-z0-9_-]{1,128}"))})
   val ids=effects.associate {it.id to "remote_${hash.take(16)}_${it.id}"}
   val resolvedEffects=effects.map {e -> require(e.frames.size in 1..12 && e.fps in 1..30 && e.scale in 25..400); val id=ids.getValue(e.id); val destination=File(store.context.filesDir,"effects/$id").apply {mkdirs()}; val frames=e.frames.mapIndexed {i,path -> val target=File(destination,"$i.png"); File(resolve(path)).copyTo(target,true); target.absolutePath}; val sound=if(e.sound.isBlank()) "" else File(destination,"sound.audio").also {File(resolve(e.sound)).copyTo(it,true)}.absolutePath; e.copy(id=id,frames=frames,sound=sound)}
   if(resolvedEffects.isNotEmpty()) store.update(store.data.copy(effectsLibrary=store.data.effectsLibrary.filterNot {it.id in resolvedEffects.map {e -> e.id}}+resolvedEffects))

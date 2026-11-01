@@ -66,9 +66,9 @@ val animationSlots=listOf("quieto","caminar adelante","caminar atrás","correr a
        CheckRow("BUCLE",config.loop){edit(f.copy(animationSettings=f.animationSettings+(slot to config.copy(loop=it))))}
        if(slot.startsWith("correr")) CheckRow("HABILITADO",config.enabled){edit(f.copy(animationSettings=f.animationSettings+(slot to config.copy(enabled=it))))}
       }
-      if(section=="ANIMACIONES EXTRA" && slot in slots) ForgeButton("RENOMBRAR",secondary=true){if(extra.isNotBlank() && extra !in f.animations && extra !in animationSlots) {val old=slot; edit(f.copy(animations=(f.animations-old)+(extra to f.animations.getValue(old)),moves=f.moves.map {if(it.animation==old) it.copy(animation=extra) else it})); slot=extra; extra=""}}
+      if(section=="ANIMACIONES EXTRA" && slot in slots) ForgeButton("RENOMBRAR",secondary=true){if(extra.isNotBlank() && extra !in f.animations && extra !in animationSlots) {val old=slot; edit(f.copy(animations=(f.animations-old)+(extra to f.animations.getValue(old)),animationSettings=(f.animationSettings-old)+(extra to (f.animationSettings[old] ?: AnimationSettings())),moves=f.moves.map {it.copy(animation=if(it.animation==old) extra else it.animation,introAnimation=if(it.introAnimation==old) extra else it.introAnimation)})); slot=extra; extra=""}}
       f.animations[slot]?.forEachIndexed { i,path -> Row(verticalAlignment=Alignment.CenterVertically) { Text("FRAME ${i+1}",Modifier.weight(1f)); TextButton({ val frames=f.animations[slot]!!.toMutableList(); if(i>0) {java.util.Collections.swap(frames,i,i-1); edit(f.copy(animations=f.animations+(slot to frames)))}}) {Text("↑")}; TextButton({edit(f.copy(animations=f.animations+(slot to ((f.animations[slot]!!+path).take(24)))))}){Text("DUPLICAR")}; TextButton({val frames=f.animations[slot]!!.toMutableList(); frames.removeAt(i); edit(f.copy(animations=f.animations+(slot to frames)))}){Text("BORRAR")} } }
-      if(section=="ANIMACIONES EXTRA" && slot in slots) ForgeButton("BORRAR ANIMACIÓN",secondary=true) { edit(f.copy(animations=f.animations-slot)); slot="quieto" }
+      if(section=="ANIMACIONES EXTRA" && slot in slots) ForgeButton("BORRAR ANIMACIÓN",secondary=true) { edit(f.copy(animations=f.animations-slot,animationSettings=f.animationSettings-slot,moves=f.moves.map {it.copy(animation=if(it.animation==slot) "quieto" else it.animation,introAnimation=if(it.introAnimation==slot) "" else it.introAnimation)})); slot="quieto" }
      }
      "EFECTOS" -> {
       Text("EFECTO AL GOLPEAR"); (listOf("sparks" to "CHISPAS","shock" to "IMPACTO","burst" to "AURA")+store.data.effectsLibrary.map {it.id to it.name}).forEach {(id,name) -> TextButton({edit(f.copy(hitEffect=id))}){Text(name,color=if(f.hitEffect==id) ForgeColors.gold else ForgeColors.text)}}
@@ -84,6 +84,8 @@ val animationSlots=listOf("quieto","caminar adelante","caminar atrás","correr a
 }
 @Composable fun MoveEditor(store: Storage,initial: Move,f: FighterDef,save: (Move)->Unit,back: ()->Unit,message: (String)->Unit) {
  val body=MotionGeometry.body(f.width,f.height)
+ var previewTick by remember {mutableIntStateOf(0)}
+ LaunchedEffect(Unit){while(true){delay(1000L/60); previewTick++}}
  var commandConfirmed by remember {mutableStateOf(initial.command.isNotEmpty())}
  var m by remember {mutableStateOf(initial)}; var newAnimation by remember {mutableStateOf("")}; var pendingGrab by remember {mutableStateOf<Box?>(null)}; var boxKind by remember {mutableStateOf(BoxKind.DAMAGE)}; var drawing by remember {mutableStateOf(false)}; var preview by remember {mutableStateOf(false)}; var selected by remember {mutableIntStateOf(-1)}
  val photoImport=rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) {uri -> if(uri!=null && selected in m.boxes.indices) runCatching {val path=store.importImage(uri,"characters/${f.id}/objects"); val list=m.boxes.toMutableList(); list[selected]=list[selected].copy(photo=path); m=m.copy(boxes=list)}.onFailure {message("Imagen no válida")} }
@@ -119,6 +121,7 @@ val animationSlots=listOf("quieto","caminar adelante","caminar atrás","correr a
  }}) {
   Row(Modifier.weight(1f),horizontalArrangement=Arrangement.spacedBy(16.dp)) {
    Column(Modifier.weight(.38f).verticalScroll(rememberScrollState()),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+    key(m){AndroidView(factory={MovePreviewView(it,f,m)},update={it.tick=previewTick; it.invalidate()},modifier=Modifier.fillMaxWidth().height(160.dp))}
     Text("COMANDO: ${m.command.joinToString(" → ")}",color=ForgeColors.gold)
     CommandPad(m.command){m=m.copy(command=it)}
     ForgeButton("BORRAR ÚLTIMO",secondary=true) {m=m.copy(command=m.command.dropLast(1))}
