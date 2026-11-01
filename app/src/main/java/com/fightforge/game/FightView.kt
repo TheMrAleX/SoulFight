@@ -5,7 +5,7 @@ import android.view.*
 import com.fightforge.engine.*
 import kotlin.math.*
 
-class FightView(context: Context,val game: Combat,val ai: Ai,@Volatile var settings: Settings,val stage: Int,val audio: ProceduralAudio,val paused: ()->Unit,val finished: (Int)->Unit,val network: NetworkMatch?=null,val networkError: (String)->Unit): SurfaceView(context),SurfaceHolder.Callback,Runnable {
+class FightView(context: Context,val game: Combat,@Volatile var ai: Ai,@Volatile var settings: Settings,val stage: Int,val audio: ProceduralAudio,val paused: ()->Unit,val finished: (Int)->Unit,val network: NetworkMatch?=null,val networkError: (String)->Unit): SurfaceView(context),SurfaceHolder.Callback,Runnable {
  @Volatile private var running=false
  @Volatile var suspended=false
   set(value){field=value; if(value){input=Input(); joystickId=-1; pointerPositions.clear(); joystickX=0f; joystickY=0f}}
@@ -32,6 +32,12 @@ class FightView(context: Context,val game: Combat,val ai: Ai,@Volatile var setti
  private val customControls=listOf("Barra_vida","Barra_poder","Joystick_fondo","Joystick_mando","Boton_A","Boton_B","Boton_C","Boton_D").associateWith {name -> java.io.File(context.filesDir,"ui/$name.png").takeIf {it.exists()}?.absolutePath}
  private fun control(c: Canvas,name: String,x: Float,y: Float,size: Float): Boolean {val path=customControls[name] ?: return false; val bitmap=image(path) ?: return false; c.drawBitmap(bitmap,null,RectF(x-size/2,y-size/2,x+size/2,y+size/2),paint); return true}
  init { holder.addCallback(this); keepScreenOn=true; isFocusable=true }
+ fun restart(opponent: Ai) {
+  check(suspended)
+  game.reset(); ai=opponent; notified=false; input=Input(); pointerPositions.clear(); joystickId=-1; joystickX=0f; joystickY=0f
+  for(i in 0..1){previousX[i]=game.fighters[i].x.toFloat(); previousY[i]=game.fighters[i].y.toFloat(); trailingHp[i]=game.fighters[i].hp.toFloat()}
+  if(!running && holder.surface.isValid){worker?.join(2000); running=true; worker=Thread(this,"fightforge-render").also {it.start()}}
+ }
  override fun surfaceCreated(holder: SurfaceHolder) {android.util.Log.d("FightForgeRender","Surface created ${System.identityHashCode(this)}"); running=true; worker=Thread(this,"fightforge-render").also { it.start() } }
  override fun surfaceDestroyed(holder: SurfaceHolder) {android.util.Log.d("FightForgeRender","Surface destroyed ${System.identityHashCode(this)}"); running=false; worker?.join(2000); worker=null; pointerPositions.clear(); input=Input() }
  override fun surfaceChanged(holder: SurfaceHolder,format: Int,width: Int,height: Int) { uiScale=min(width/1920f,height/1080f) }
@@ -54,7 +60,7 @@ class FightView(context: Context,val game: Combat,val ai: Ai,@Volatile var setti
     if(game.fighters.any {it.hp==0} && game.fighters.sumOf {it.hp}<before) audio.effect("ko",settings.effects)
    }
    var canvas: Canvas?=null
-   try { if(holder.surface.isValid) {canvas=holder.lockCanvas(); if(canvas!=null) render(canvas,accumulator.toFloat()/step)} } catch(e: IllegalArgumentException) {if(running) post {networkError("No se pudo dibujar la superficie")}} finally {if(canvas!=null) runCatching {holder.unlockCanvasAndPost(canvas)}}
+   try { if(holder.surface.isValid) {canvas=holder.lockHardwareCanvas(); if(canvas!=null) render(canvas,accumulator.toFloat()/step)} } catch(e: IllegalArgumentException) {if(running) post {networkError("No se pudo dibujar la superficie")}} finally {if(canvas!=null) runCatching {holder.unlockCanvasAndPost(canvas)}}
    if(game.matchOver && !notified) { notified=true; post { finished(game.winner) } }
    val remaining=(step-accumulator-(System.nanoTime()-now)).coerceAtLeast(1_000_000)
    Thread.sleep((remaining/1_000_000).coerceIn(1,16))
