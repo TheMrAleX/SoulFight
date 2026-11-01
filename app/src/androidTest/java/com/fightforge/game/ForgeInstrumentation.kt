@@ -26,6 +26,8 @@ class ForgeInstrumentation: Instrumentation() {
    val id="acceptance-${UUID.randomUUID()}"; val dir=File(context.filesDir,"characters/$id").apply {mkdirs()}
    try {
     fun png(name: String,w: Int,h: Int,color: Int): String {val b=Bitmap.createBitmap(w,h,Bitmap.Config.ARGB_8888); Canvas(b).drawColor(color); val file=File(dir,name); file.outputStream().use {check(b.compress(Bitmap.CompressFormat.PNG,100,it))}; b.recycle(); return file.absolutePath}
+    store.update(original.copy(coins=500,purchased=setOf("default_0","default_1")))
+    val lyra=Defaults.roster()[2]; check(store.buy(lyra)); check(store.data.coins==200 && Storage(context).owned(lyra)); check(!store.buy(lyra) && store.data.coins==200); count++
     val idle=png("idle.png",460,920,Color.CYAN); val photo=png("photo.png",256,256,Color.RED)
     val adjusted=store.importImage(android.net.Uri.fromFile(File(photo)),"characters/$id/import",128,256)
     val adjustedBitmap=android.graphics.BitmapFactory.decodeFile(adjusted)
@@ -42,7 +44,7 @@ class ForgeInstrumentation: Instrumentation() {
      val executor=Executors.newFixedThreadPool(2); val listener=ServerSocket(0)
      try {
       val host=executor.submit(Callable {
-       NetworkMatch(listener.accept(),true,hero,store,3).use {session -> val g=session.handshake(); repeat(ticks){i -> val inputs=session.exchange(Input(horizontal=if(i%240<120) 1 else -1,buttons=if(i%900==0) 1 else 0),g); g.step(inputs.first,inputs.second)}; check(g.tick==ticks); session.sentAssetBytes to g.checksum()}
+       NetworkMatch(listener.accept(),true,hero,store,3).use {session -> val g=session.handshake(); var aerialFrames=0; repeat(ticks){i -> val previousVy=g.fighters[0].vy; val inputs=session.exchange(Input(horizontal=if(i%240<120) 1 else -1,vertical=if(i%180==0) -1 else 0,buttons=if(i%180==6) 1 else 0),g); g.step(inputs.first,inputs.second); val f=g.fighters[0]; if(f.move!=null && f.y<FLOOR){check(f.vy>previousVy); aerialFrames++}}; check(g.tick==ticks && aerialFrames>0); session.sentAssetBytes to g.checksum()}
       })
       val client=executor.submit(Callable {
        NetworkMatch(Socket("127.0.0.1",listener.localPort),false,Defaults.roster()[1],store).use {session -> val g=session.handshake(); check(session.stageDef?.name==stage.name && session.stageDef?.frames?.size==2); repeat(ticks){i -> val inputs=session.exchange(Input(horizontal=if(i%240<120) -1 else 1),g); g.step(inputs.first,inputs.second)}; session.sentAssetBytes to g.checksum()}

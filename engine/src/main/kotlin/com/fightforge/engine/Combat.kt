@@ -89,7 +89,10 @@ class Combat(val one: FighterDef,val two: FighterDef,val seed: Int=42,val practi
         val f=fighters[i]; val rival=fighters[1-i]; f.animationAge++
         if(f.invulnerable>0) f.invulnerable--
         if(f.dizzy>0 && tick%4==0) f.dizzy--
-        if(f.hp<=0) { f.state=State.KO; return }; if(f.grabbedBy>=0) return
+        if(f.grabbedBy>=0) return
+        val airborne=f.y<FLOOR || f.vy<0
+        if(airborne) {f.vy+=13; f.y+=f.vy; if(f.y>=FLOOR){f.y=FLOOR; f.vy=0}}
+        if(f.hp<=0) {f.state=State.KO; return}
         val relative=input.horizontal*f.facing; f.relativeMotion=relative
         val direction=when { input.vertical<0 -> if(relative>0) "NE" else if(relative<0) "NW" else "N"; input.vertical>0 -> if(relative>0) "SE" else if(relative<0) "SW" else "S"; relative>0 -> "E"; relative<0 -> "W"; else -> "" }
         val directionChanged=direction!=f.previousDirection && direction.isNotEmpty()
@@ -97,10 +100,10 @@ class Combat(val one: FighterDef,val two: FighterDef,val seed: Int=42,val practi
         for(button in 0..3) if(input.buttons and (1 shl button)!=0 && f.previousButtons and (1 shl button)==0) f.history.add(tick to ('A'+button).toString())
         val newButton=input.buttons and f.previousButtons.inv()!=0
         f.previousButtons=input.buttons; f.previousDirection=direction; f.history.removeAll { tick-it.first>120 }
-        if(f.timer>0) { f.timer--; if(f.timer==0) when(f.state) { State.CROUCH_DOWN -> f.state=State.CROUCH; State.CROUCH_UP -> f.state=State.IDLE; State.DOWN -> { f.state=State.GETUP; f.timer=30; f.invulnerable=30 }; State.STUN -> { f.state=State.DOWN; f.timer=40 }; else -> { f.state=State.IDLE; rival.combo=0 } }; return }
-        if(f.move!=null) { f.attackFrame++; if(f.attackFrame>=f.move!!.duration) {
+        if(f.timer>0) { f.timer--; if(f.timer==0) when(f.state) { State.CROUCH_DOWN -> f.state=State.CROUCH; State.CROUCH_UP -> f.state=State.IDLE; State.DOWN -> {if(f.y<FLOOR) f.timer=1 else {f.state=State.GETUP; f.timer=30; f.invulnerable=30}}; State.STUN -> { f.state=State.DOWN; f.timer=40 }; else -> {f.state=restingState(f); rival.combo=0} }; return }
+        if(f.move!=null) {if(airborne) steerAirAttack(f,input); f.attackFrame++; if(f.attackFrame>=f.move!!.duration) {
             if(f.grabTarget>=0) { val victim=fighters[f.grabTarget]; victim.grabbedBy=-1; hit(i,f.move!!.damage(f.definition.stats,f.combo+1)*18/10,Input(),true); f.grabTarget=-1 }
-            f.move=null; f.state=State.IDLE
+            f.move=null; f.state=restingState(f)
         }; return }
         if(newButton || directionChanged) {
             val m=Commands.match(f.history,f.definition.moves,tick)
@@ -108,12 +111,12 @@ class Combat(val one: FighterDef,val two: FighterDef,val seed: Int=42,val practi
                 f.move=m; f.attackFrame=0; f.struck=false; f.hitObjects.clear(); f.tap.reset(); f.state=State.ATTACK
                 if(m.kind==Kind.ULTIMATE) {f.power-=3000*m.powerPercent/100; superPause=60; cinematicOwner=i}
                 if(m.invulnerable) f.invulnerable=m.startup+m.active
-                f.history.clear(); return
+                f.history.clear(); if(airborne) steerAirAttack(f,input); return
             }
         }
         if(f.y==FLOOR && input.vertical<=0 && f.state==State.CROUCH) {f.state=State.CROUCH_UP; f.timer=5; return}
-        if(f.y<FLOOR || f.vy<0) { f.vy+=13; f.y+=f.vy; if(f.y>=FLOOR) { f.y=FLOOR; f.vy=0 }; val airRun=input.horizontal!=0 && f.tap.update(input.horizontal,tick) && (f.definition.animationSettings[if(relative<0) "correr aire atrás" else "correr aire adelante"]?.enabled != false)
-            f.state=if(airRun) State.AIR_RUN else if(f.vy<0) State.JUMP else State.FALL
+        if(airborne) { val airRun=input.horizontal!=0 && f.tap.update(input.horizontal,tick) && (f.definition.animationSettings[if(relative<0) "correr aire atrás" else "correr aire adelante"]?.enabled != false)
+            f.state=if(f.y==FLOOR) State.IDLE else if(airRun) State.AIR_RUN else if(f.vy<0) State.JUMP else State.FALL
             f.x+=input.horizontal*(if(airRun) f.definition.stats.run else f.definition.stats.walk) }
         else if(input.vertical<0) { f.vy=-1500*SCALE/60; f.state=State.JUMP; f.y+=f.vy }
         else if(input.vertical>0) {if(relative<0) f.state=State.BLOCK_CROUCH else if(f.state==State.CROUCH) f.state=State.CROUCH else {f.state=State.CROUCH_DOWN; f.timer=5}}
@@ -125,6 +128,10 @@ class Combat(val one: FighterDef,val two: FighterDef,val seed: Int=42,val practi
         f.x=f.x.coerceIn(f.definition.width*SCALE/2,(3200-f.definition.width/2)*SCALE)
         for(p in spawns.filter {it.kind==BoxKind.SOLID}) if(f.body.intersects(Rect(p.x,p.y,p.w,p.h))) {f.x=if(f.x<p.x+p.w/2) p.x-f.definition.width*SCALE/2 else p.x+p.w+f.definition.width*SCALE/2}
         if(f.body.intersects(rival.body)) f.x=rival.x-f.facing*(f.definition.width+rival.definition.width)*SCALE/2
+    }
+    private fun restingState(f: Fighter)=if(f.y<FLOOR) {if(f.vy<0) State.JUMP else State.FALL} else State.IDLE
+    private fun steerAirAttack(f: Fighter,input: Input) {
+        f.x=(f.x+input.horizontal*f.definition.stats.walk).coerceIn(f.definition.width*SCALE/2,(3200-f.definition.width/2)*SCALE)
     }
     private fun attack(i: Int,defense: Input) {
         val f=fighters[i]; val m=f.move ?: return; val other=fighters[1-i]

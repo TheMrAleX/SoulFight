@@ -44,7 +44,7 @@ class NetworkMatch(val socket: Socket,val host: Boolean,val own: FighterDef,val 
   if(!exists){cache.parentFile!!.mkdirs(); cache.writeBytes(bytes)}; return bytes
  }
  fun handshake(): Combat {
-  output.writeInt(0x46464732); output.flush(); require(input.readInt()==0x46464732){"Versiones de juego incompatibles"}
+  output.writeInt(0x46464733); output.flush(); require(input.readInt()==0x46464733){"Versiones de juego incompatibles"}
   val other=if(host) {sendCharacter(); receiveCharacter()} else {val f=receiveCharacter(); sendCharacter(); f}
   if(host) {stageDef=store.data.stages.getOrNull(chosenStage-3); stageIndex=if(stageDef==null) chosenStage.coerceIn(0,2) else chosenStage; output.writeInt(stageIndex); output.flush(); stageDef?.let {sendCached(StagePackages.encode(store,it))}}
   else {stageIndex=input.readInt(); require(stageIndex in 0..10000); if(stageIndex>=3) stageDef=StagePackages.decode(store,receiveCached())}
