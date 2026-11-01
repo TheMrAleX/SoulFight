@@ -1,31 +1,25 @@
-# Validación de la primera entrega
+# Validación de Fight Forge 0.2.0
 
-- `./gradlew test assembleDebug assembleRelease --max-workers=4`: compilación y tests aprobados.
-- Motor JVM: 21 tests ejecutados, 0 errores, 0 fallos, 0 omitidos. Incluye determinismo durante 3600 ticks, dos peers lockstep, retraso de entradas, detección de desincronización, estadísticas, economía, comandos, joystick, doble toque, agarres, reciclado y geometría.
-- Los targets unitarios de `:app` no contienen pruebas; sus resultados NO-SOURCE no se cuentan como tests aprobados.
-- APK release verificado con Android apksigner, esquema v2, RSA 3072. SHA-256 del certificado: `a8c231eb36ba8c1682da32929d95e16180a4fa62482ef05ba8f4a4feac2073de`.
-- JDK 17, SDK 34 y Gradle 8.9 descargados de fuentes oficiales con comprobaciones de integridad. Gradle wrapper fija SHA-256 de distribución.
-- El entorno no dispone de /dev/kvm. Se inició Android Emulator con emulación de CPU; todavía no constituye una validación de la aplicación en ejecución. La primera instalación no pudo completarse antes de que Android iniciara PackageManager.
-- Sin medición de 60 FPS en dispositivo físico y sin prueba de dos teléfonos WiFi. Las comprobaciones visuales de TRACEABILITY siguen pendientes.
+## Resultados comprobados
 
-- GitHub Actions ejecutó correctamente tests y compilación en un runner independiente. El job de publicación verificó SHA-256 y el certificado y adjuntó `FightForge.apk` y `SHA256SUMS` a la release pública preliminar `v0.1.0`. Se precreó el tag exacto mediante Git para evitar el límite de creación de tags del token de Actions.
+- `test assembleDebug assembleDebugAndroidTest`: compilación aprobada. Motor JVM: 35 pruebas, 0 fallos, 0 errores y 0 omitidas. Los targets unitarios de `:app` sin pruebas no se cuentan como resultados aprobados.
+- `lintDebug` y `assembleRelease`: aprobados. Lint mantiene advertencias de optimización, accesibilidad de vistas nativas y APIs desaconsejadas; no hay errores de Lint.
+- GitHub Actions [Android 41348864304](https://github.com/TheMrAleX/SoulFight/actions/runs/41348864304): tests y build aprobados en un runner independiente.
+- [Android device smoke 41348864322](https://github.com/TheMrAleX/SoulFight/actions/runs/41348864322): recorrido funcional y las 10 comprobaciones de instrumentación aprobados sobre Android 10 acelerado.
+- Recorrido real de interfaz: menú → selección → preparación → combate → pausa → lista de movimientos → continuar → creación de personaje → dibujo de foto y quieto → guardado → personaje visible en la biblioteca. Orientación horizontal y ausencia de excepción fatal del paquete durante ese recorrido.
+- Instrumentación: persistencia, paquetes de personaje/efectos estables, escenario de dos frames, dos conexiones TCP reales con 3600 ticks y hashes iguales, reutilización de caché sin retransmisión, reparación de caché corrupta, PNG ajustado con transparencia y centrado, 50 pasos de deshacer/rehacer, relleno, borrador, recuperación de datos corruptos y borrado persistente.
+- Resultados nativos: `checks=10`, `passed=true`, `INSTRUMENTATION_CODE: -1`. Capturas, XML, registros y resultados están en el artefacto `device-evidence` del workflow. Copia local: `/tmp/fightforge-020-passed-device`.
 
-## Corrección posterior conservada en el código
+## Firma y actualizaciones
 
-`main` incorpora un ZIP determinista para estabilizar los hashes de caché LAN: 23 pruebas JVM aprobadas, 0 fallos/errores/omitidas, y `test assembleDebug` aprobado. Esta corrección no está incluida en el APK de v0.1.0 y no se ha publicado una segunda release.
+El APK usa `com.fightforge.game`, firma v2 RSA 3072 y el certificado SHA-256 `a8c231eb36ba8c1682da32929d95e16180a4fa62482ef05ba8f4a4feac2073de`, idéntico a v0.1.0. El script de release aumenta versionCode mediante el historial de commits y verifica el APK antes de publicarlo.
 
-Android 10 completó el arranque e instaló el APK. El recorrido local no terminó: UIAutomator superó 30 segundos y la captura de la máquina emulada presentó corrupción gráfica. No se cuenta como prueba funcional aprobada ni como defecto demostrado del juego.
+La clave privada permanece exclusivamente en `/workspace/fightforge-signing`, fuera del repositorio, con permisos 700 para el directorio y 600 para sus archivos. El certificado público está en `signing/release-certificate.pem`.
 
-## Recorrido funcional verificado
+La instalación superpuesta con esta identidad ya se comprobó en Android mediante `adb install -r`, desde v0.1.0 (código 7) al candidato 0.1.1 (código 19), conservando el UID. El resultado histórico está en `/workspace/fightforge-builds/UPDATE_CHECK.txt`. Esa comprobación histórica no se presenta como una instalación de 0.2.0.
 
-GitHub Actions `41266546225` aprobó en Android 10: menú → selección → preparación → combate → pausa → lista de movimientos → continuar. Comprobó orientación horizontal y ausencia de excepciones fatales del paquete del juego durante el recorrido, y conservó captura de combate. Los intentos previos de UIAutomator fallaron por un AVD en una ruta distinta, el aviso de Android sobre pantalla completa y una captura de accesibilidad todavía no generada; se corrigieron sin quitar las comprobaciones.
+## Límites de la evidencia
 
-El código posterior suma 24 pruebas JVM aprobadas e incluye cancelar la carrera al atacar, carga de 20 puntos/segundo, correcciones de contraste, interpolación inicial y espejo del HUD. Esos cambios siguen sin una segunda publicación. No se han certificado FPS en teléfonos físicos, todas las herramientas de edición ni LAN entre dos dispositivos.
+No se han medido 60 FPS sostenidos en teléfonos de gama media ni probado el descubrimiento NSD entre dos teléfonos físicos. El test TCP usa dos peers en un mismo emulador. Audio y vibración en fabricantes distintos y las filas manuales de TRACEABILITY.md requieren revisión en ese hardware.
 
-## APK candidato firmado y actualización superpuesta
-
-Se construyó localmente `FightForge-0.1.1.apk` (applicationId `com.fightforge.game`, versionCode 19) y se verificó con apksigner. Usa exactamente el mismo certificado SHA-256 que v0.1.0 (versionCode 7).
-
-En el AVD de pruebas se retiró exclusivamente la instalación debug creada por estas pruebas, se instaló la release 0.1.0 y después se instaló 0.1.1 con `adb install -r`, sin desinstalar entre ambas releases. Ambas instalaciones aprobaron y se conservó el UID del paquete. La comprobación se guarda en `/workspace/fightforge-builds/UPDATE_CHECK.txt`.
-
-La revisión automática rechazó publicar una segunda release por requerir autorización específica. El candidato está en `/workspace/fightforge-builds/FightForge-0.1.1.apk`; no se subió ni publicó. La release disponible en GitHub sigue siendo v0.1.0. El recorrido de dispositivo más reciente también aprobó en Actions `41266880174` y el build/tests en `41266880159`.
+Los fallos encontrados durante el desarrollo se corrigieron y se repitieron sus comprobaciones: recreación de superficie tras pausa, restauración de pantalla completa después de diálogos, acciones de animación fuera de pantalla y arranque/formato de salida del runner de instrumentación. No se eliminaron sus aserciones.
