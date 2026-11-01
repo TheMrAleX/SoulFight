@@ -46,12 +46,12 @@ class MainActivity: ComponentActivity() {
  override fun onResume() { super.onResume(); if(::audio.isInitialized) audio.resume() }
  override fun onDestroy() { audio.close(); super.onDestroy() }
 }
-@Composable fun ForgeButton(label: String,modifier: Modifier=Modifier,secondary: Boolean=false,enabled: Boolean=true,onClick: ()->Unit) {
+@Composable fun ForgeButton(label: String,modifier: Modifier=Modifier,secondary: Boolean=false,enabled: Boolean=true,leading: androidx.compose.ui.graphics.vector.ImageVector?=null,leadingColor: Color=ForgeColors.text,onClick: ()->Unit) {
  val source=remember {MutableInteractionSource()}; val pressed by source.collectIsPressedAsState()
  val scale by animateFloatAsState(if(pressed) .96f else 1f,tween(90),label="button")
  val shape=CutCornerShape(12.dp)
  val base=if(secondary) ForgeColors.high else ForgeColors.primary
- Button(onClick,modifier.scale(scale).heightIn(min=if(secondary) 48.dp else 56.dp).clip(shape).background(Brush.verticalGradient(listOf(base,base.copy(red=base.red*.72f,green=base.green*.72f,blue=base.blue*.72f)))),enabled=enabled,shape=shape,interactionSource=source,colors=ButtonDefaults.buttonColors(containerColor=Color.Transparent,contentColor=ForgeColors.text,disabledContainerColor=ForgeColors.surface),border=BorderStroke(1.5.dp,if(secondary) ForgeColors.secondary else ForgeColors.text.copy(alpha=.4f))) {Text(label.uppercase())}
+ Button(onClick,modifier.scale(scale).heightIn(min=if(secondary) 48.dp else 56.dp).clip(shape).background(Brush.verticalGradient(listOf(base,base.copy(red=base.red*.72f,green=base.green*.72f,blue=base.blue*.72f)))),enabled=enabled,shape=shape,interactionSource=source,colors=ButtonDefaults.buttonColors(containerColor=Color.Transparent,contentColor=ForgeColors.text,disabledContainerColor=ForgeColors.surface),border=BorderStroke(1.5.dp,if(secondary) ForgeColors.secondary else ForgeColors.text.copy(alpha=.4f))) {if(leading!=null){Icon(leading,null,Modifier.size(16.dp),tint=leadingColor); Spacer(Modifier.width(6.dp))}; Text(label.uppercase())}
 }
 @Composable fun Frame(title: String,back: ()->Unit,action: (@Composable ()->Unit)?=null,content: @Composable ColumnScope.()->Unit) {
  Column(Modifier.fillMaxSize().background(ForgeColors.bg).windowInsetsPadding(WindowInsets.safeDrawing).padding(horizontal=24.dp,vertical=8.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
