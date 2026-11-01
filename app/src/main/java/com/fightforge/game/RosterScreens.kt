@@ -1,6 +1,8 @@
 package com.fightforge.game
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -42,6 +44,18 @@ import com.fightforge.engine.*
     }
     val owned=store.owned(f)
     ForgeButton(if(owned) "COMPRADO" else "${Defaults.prices[Defaults.names.indexOf(f.name)]} MONEDAS",Modifier.fillMaxWidth(),secondary=true,enabled=!owned){purchase(f)}
+   }
+  }
+ }
+}
+
+@Composable fun FighterGrid(store: Storage,selected: FighterDef,modifier: Modifier=Modifier,pick: (FighterDef)->Unit) {
+ LazyVerticalGrid(columns=GridCells.Fixed(4),modifier=modifier,horizontalArrangement=Arrangement.spacedBy(8.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+  items(store.roster(),key={it.id}) {f ->
+   val shape=CutCornerShape(10.dp); val active=f.id==selected.id
+   Column(Modifier.height(96.dp).background(if(active) ForgeColors.high else ForgeColors.surface,shape).border(if(active) 2.dp else 1.dp,if(active) ForgeColors.secondary else ForgeColors.border,shape).clickable {pick(f)}.padding(6.dp),horizontalAlignment=Alignment.CenterHorizontally) {
+    Box(Modifier.weight(1f).fillMaxWidth()) {Portrait(f,Modifier.fillMaxSize()); if(!store.owned(f)) Icon(ForgeIcons.Lock,"BLOQUEADO",Modifier.size(16.dp).align(Alignment.TopEnd),tint=ForgeColors.gold)}
+    Text(f.name,maxLines=1,overflow=TextOverflow.Ellipsis,style=MaterialTheme.typography.labelLarge)
    }
   }
  }
