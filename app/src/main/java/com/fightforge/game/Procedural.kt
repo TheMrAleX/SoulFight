@@ -54,7 +54,15 @@ class ProceduralAudio(val context: Context) {
   }
  }
  fun effect(name: String,volume: Int) { sounds[name]?.let { pool.play(it,volume/100f,volume/100f,1,0,1f) } }
- fun music(combat: Boolean,volume: Int,track: String="") { player?.release(); player=MediaPlayer().apply { setDataSource(if(track.isNotBlank() && File(track).isFile) track else File(context.filesDir,"audio/${if(combat) "combat" else "menu"}.wav").absolutePath); isLooping=true; setVolume(volume/100f,volume/100f); prepare(); start() } }
+ fun music(combat: Boolean,volume: Int,track: String="") {
+  player?.release(); player=null
+  val fallback=File(context.filesDir,"audio/${if(combat) "combat" else "menu"}.wav").absolutePath
+  for(path in listOf(track,fallback).filter {it.isNotBlank()}.distinct()) {
+   val candidate=MediaPlayer()
+   try {candidate.setDataSource(path); candidate.isLooping=true; candidate.setVolume(volume/100f,volume/100f); candidate.prepare(); candidate.start(); player=candidate; return}
+   catch(e: Exception) {candidate.release()}
+  }
+ }
  fun pause() { player?.pause() }
  fun resume() { player?.start() }
  fun close() { player?.release(); pool.release() }
