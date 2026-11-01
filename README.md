@@ -34,9 +34,9 @@ La firma se conserva fuera del repositorio en `/workspace/fightforge-signing/rel
 scripts/release.sh 0.1.1
 ```
 
-El script exige un checkout limpio, ejecuta tests, construye y verifica el APK firmado, sube main y crea la release preliminar con checksum. `versionCode` usa el número de commits: mantener historial ascendente sin reiniciarlo. Los APK debug utilizan una firma distinta y no actualizan una instalación release.
+El script exige un checkout limpio, ejecuta tests, construye y verifica el APK firmado, sube main y crea la release preliminar con checksum, directamente o a través del workflow de publicación de artefactos verificados. `versionCode` usa el número de commits: mantener historial ascendente sin reiniciarlo. Los APK debug utilizan una firma distinta y no actualizan una instalación release.
 
-GitHub Actions construye tests y APK debug en pushes y PR. Para firmar tags requiere secretos `FIGHTFORGE_KEYSTORE_BASE64` y `FIGHTFORGE_STORE_PASSWORD`. La integración actual responde HTTP 403 al guardarlos; la clave local está disponible y la publicación manual desde el entorno no depende de esos secretos.
+GitHub Actions construye tests y APK debug en pushes y PR. Para firmar tags requiere secretos `FIGHTFORGE_KEYSTORE_BASE64` y `FIGHTFORGE_STORE_PASSWORD`. La integración actual responde HTTP 403 al guardarlos; la clave local está disponible y la publicación usa un APK ya firmado en una rama `release-artifacts/vX.Y.Z` y el token propio de Actions cuando la subida directa está restringida. La clave privada no se sube.
 
 ## Alcance de esta versión preliminar
 

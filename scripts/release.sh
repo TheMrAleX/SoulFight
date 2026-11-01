@@ -15,4 +15,6 @@ mkdir -p /tmp/fightforge-release
 cp app/build/outputs/apk/release/app-release.apk /tmp/fightforge-release/FightForge.apk
 (cd /tmp/fightforge-release && sha256sum FightForge.apk > SHA256SUMS)
 git push origin HEAD:main
-gh release create "v$version" /tmp/fightforge-release/FightForge.apk /tmp/fightforge-release/SHA256SUMS --repo TheMrAleX/SoulFight --target "$(git rev-parse HEAD)" --title "Fight Forge $version" --prerelease --notes-file RELEASE_NOTES.md
+if ! gh release create "v$version" /tmp/fightforge-release/FightForge.apk /tmp/fightforge-release/SHA256SUMS --repo TheMrAleX/SoulFight --target "$(git rev-parse HEAD)" --title "Fight Forge $version" --prerelease --notes-file RELEASE_NOTES.md; then
+  python3 scripts/prepare-release.py "$version"
+fi
