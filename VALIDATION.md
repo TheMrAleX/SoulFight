@@ -15,3 +15,9 @@
 `main` incorpora un ZIP determinista para estabilizar los hashes de caché LAN: 23 pruebas JVM aprobadas, 0 fallos/errores/omitidas, y `test assembleDebug` aprobado. Esta corrección no está incluida en el APK de v0.1.0 y no se ha publicado una segunda release.
 
 Android 10 completó el arranque e instaló el APK. El recorrido local no terminó: UIAutomator superó 30 segundos y la captura de la máquina emulada presentó corrupción gráfica. No se cuenta como prueba funcional aprobada ni como defecto demostrado del juego.
+
+## Recorrido funcional verificado
+
+GitHub Actions `41266546225` aprobó en Android 10: menú → selección → preparación → combate → pausa → lista de movimientos → continuar. Comprobó orientación horizontal y ausencia de excepciones fatales del paquete del juego durante el recorrido, y conservó captura de combate. Los intentos previos de UIAutomator fallaron por un AVD en una ruta distinta, el aviso de Android sobre pantalla completa y una captura de accesibilidad todavía no generada; se corrigieron sin quitar las comprobaciones.
+
+El código posterior suma 24 pruebas JVM aprobadas e incluye cancelar la carrera al atacar, carga de 20 puntos/segundo, correcciones de contraste, interpolación inicial y espejo del HUD. Esos cambios siguen sin una segunda publicación. No se han certificado FPS en teléfonos físicos, todas las herramientas de edición ni LAN entre dos dispositivos.

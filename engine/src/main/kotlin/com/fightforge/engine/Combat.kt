@@ -101,7 +101,7 @@ class Combat(val one: FighterDef,val two: FighterDef,val seed: Int=42,val practi
         if(newButton || directionChanged) {
             val m=Commands.match(f.history,f.definition.moves,tick)
             if(m!=null && (m.kind!=Kind.ULTIMATE || f.power>=3000*m.powerPercent/100)) {
-                f.move=m; f.attackFrame=0; f.struck=false; f.hitObjects.clear(); f.state=State.ATTACK
+                f.move=m; f.attackFrame=0; f.struck=false; f.hitObjects.clear(); f.tap.reset(); f.state=State.ATTACK
                 if(m.kind==Kind.ULTIMATE) {f.power-=3000*m.powerPercent/100; superPause=60; cinematicOwner=i}
                 if(m.invulnerable) f.invulnerable=m.startup+m.active
                 f.history.clear(); return

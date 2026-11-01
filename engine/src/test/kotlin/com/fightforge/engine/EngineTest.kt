@@ -41,4 +41,18 @@ class EngineTest {
  }
  @Test fun frameEconomySpeed() { assertEquals(1000L,Economy.frameGain(7,Stats())); assertTrue(Economy.frameGain(7,Stats(5,0,10,5))>Economy.frameGain(7,Stats())) }
  @Test(expected=IllegalArgumentException::class) fun rejectHugeTemplate() {TemplateGeometry(401,400)}
+ @Test fun runningChargesSlowlyAndAttackCancelsIt() {
+  val f=Defaults.roster()[0]; val game=Combat(f,f,practice=true)
+  game.fighters[1].x=3000*SCALE
+  game.step(Input(horizontal=1),Input()); game.step(Input(),Input())
+  val start=game.fighters[0].x
+  repeat(60){game.step(Input(horizontal=1),Input())}
+  assertEquals(State.RUN,game.fighters[0].state)
+  assertEquals(start+f.stats.walk*2*60,game.fighters[0].x)
+  assertEquals(20,game.fighters[0].power)
+  game.step(Input(horizontal=1,buttons=1),Input())
+  assertEquals(State.ATTACK,game.fighters[0].state)
+  repeat(f.moves.first().duration+2){game.step(Input(horizontal=1),Input())}
+  assertEquals(State.WALK,game.fighters[0].state)
+ }
 }

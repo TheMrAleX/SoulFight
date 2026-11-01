@@ -44,4 +44,4 @@ Esta versión todavía no cumple toda la especificación comercial. El pixel edi
 
 Las pruebas de motor y compilación no equivalen a una certificación de rendimiento en teléfonos ni a una validación LAN con dos dispositivos físicos. TRACEABILITY.md distingue cobertura automatizada y comprobaciones manuales.
 
-El código de `main` incluye una corrección posterior para hashes de paquetes LAN estables. Se validó localmente con 23 pruebas; todavía no está incluida en el APK publicado v0.1.0.
+El código de `main` incluye una corrección posterior para hashes de paquetes LAN estables. Junto con correcciones posteriores de carrera, contraste y HUD, se validó localmente con 24 pruebas; todavía no está incluida en el APK publicado v0.1.0.

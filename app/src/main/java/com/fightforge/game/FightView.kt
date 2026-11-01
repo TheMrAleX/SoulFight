@@ -10,7 +10,7 @@ class FightView(context: Context,val game: Combat,val ai: Ai,val settings: Setti
  private var worker: Thread?=null
  private val pointerPositions=mutableMapOf<Int,Pair<Float,Float>>()
  @Volatile private var input=Input()
- private val previousX=FloatArray(2); private val previousY=FloatArray(2); private val trailingHp=FloatArray(2){game.fighters[it].hp.toFloat()}; private var joystickId=-1; private var uiScale=1f; private var notified=false; private var lastHp=game.fighters.sumOf { it.hp }
+ private val previousX=FloatArray(2){game.fighters[it].x.toFloat()}; private val previousY=FloatArray(2){game.fighters[it].y.toFloat()}; private val trailingHp=FloatArray(2){game.fighters[it].hp.toFloat()}; private var joystickId=-1; private var uiScale=1f; private var notified=false; private var lastHp=game.fighters.sumOf { it.hp }
  private val paint=Paint(Paint.ANTI_ALIAS_FLAG)
  private val images=object: android.util.LruCache<String,Bitmap>(32*1024*1024) {override fun sizeOf(key: String,value: Bitmap)=value.byteCount}
  private fun image(path: String): Bitmap? { images.get(path)?.let {return it}; val bounds=BitmapFactory.Options().apply {inJustDecodeBounds=true}; BitmapFactory.decodeFile(path,bounds); var sample=1; while(bounds.outWidth/sample>1024 || bounds.outHeight/sample>1024) sample*=2; val decoded=BitmapFactory.decodeFile(path,BitmapFactory.Options().apply {inSampleSize=sample}) ?: return null; images.put(path,decoded); return decoded }
@@ -82,7 +82,7 @@ class FightView(context: Context,val game: Combat,val ai: Ai,val settings: Setti
    trailingHp[i]=if(trailingHp[i]<f.hp) f.hp.toFloat() else (trailingHp[i]-(trailingHp[i]-f.hp)*.045f).coerceAtLeast(f.hp.toFloat())
    val trail=trailingHp[i]/f.definition.stats.maxHp
    paint.color=0xFFF2F5FF.toInt(); if(i==0) c.drawRect(left,42f,left+640*trail,84f,paint) else c.drawRect(right-640*trail,42f,right,84f,paint)
-   val ratio=f.hp.toFloat()/f.definition.stats.maxHp; paint.shader=LinearGradient(left,0f,right,0f,0xFFFF3B4E.toInt(),0xFF3DDC84.toInt(),Shader.TileMode.CLAMP)
+   val ratio=f.hp.toFloat()/f.definition.stats.maxHp; paint.shader=LinearGradient(if(i==0) left else right,0f,if(i==0) right else left,0f,intArrayOf(0xFFFF3B4E.toInt(),0xFFFFC83D.toInt(),0xFF3DDC84.toInt()),floatArrayOf(0f,.5f,1f),Shader.TileMode.CLAMP)
    if(i==0) c.drawRect(left,42f,left+640*ratio,84f,paint) else c.drawRect(right-640*ratio,42f,right,84f,paint)
    paint.shader=null; paint.color=0xFF1E2742.toInt(); c.drawRect(left,92f,right,112f,paint); paint.color=0xFF3DD9EB.toInt(); c.drawRect(left,92f,left+640*f.power/3000f,112f,paint)
    paint.color=0xFFF2F5FF.toInt(); paint.textSize=26f; paint.typeface=Typeface.create("sans-serif-condensed",Typeface.BOLD); c.drawText(f.definition.name.uppercase(),left,145f,paint)
