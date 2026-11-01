@@ -4,7 +4,7 @@ val passwordFile = file("$signingRoot/store-password")
 android {
     namespace = "com.fightforge.game"
     compileSdk = 34
-    defaultConfig { applicationId = "com.fightforge.game"; minSdk = 29; targetSdk = 34; versionCode = providers.gradleProperty("releaseCode").orElse("1").get().toInt(); versionName = providers.gradleProperty("releaseName").orElse("0.1.0").get() }
+    defaultConfig { testInstrumentationRunner = "com.fightforge.game.ForgeInstrumentation"; applicationId = "com.fightforge.game"; minSdk = 29; targetSdk = 34; versionCode = providers.gradleProperty("releaseCode").orElse("1").get().toInt(); versionName = providers.gradleProperty("releaseName").orElse("0.1.0").get() }
     if (passwordFile.exists()) signingConfigs.create("stable") {
         storeFile = file("$signingRoot/release.p12")
         storePassword = passwordFile.readText().trim()

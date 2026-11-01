@@ -31,7 +31,7 @@ jobs:
         run: sdkmanager 'platforms;android-34' 'build-tools;34.0.0' 'emulator' 'system-images;android-29;default;x86_64'
       - name: Build debug APK
         timeout-minutes: 6
-        run: ./gradlew assembleDebug --max-workers=2
+        run: ./gradlew assembleDebug assembleDebugAndroidTest --max-workers=2
       - name: Start accelerated device
         timeout-minutes: 6
         run: |
@@ -48,6 +48,12 @@ jobs:
           timeout 60 adb install -r app/build/outputs/apk/debug/app-debug.apk
       - name: Exercise actual gameplay navigation
         run: python3 scripts/device-smoke.py
+      - name: Exercise TCP transport, assets, persistence and pixel editor
+        run: |
+          adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+          adb shell am instrument -w com.fightforge.game.test/com.fightforge.game.ForgeInstrumentation | tee /tmp/fightforge-device-evidence/instrumentation.txt
+          grep -q 'passed=true' /tmp/fightforge-device-evidence/instrumentation.txt
+          grep -q 'INSTRUMENTATION_CODE: -1' /tmp/fightforge-device-evidence/instrumentation.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -40,14 +40,26 @@ def tap(label):
             time.sleep(1)
             continue
         for node in root.iter('node'):
-            text = node.get('text') or node.get('content-desc') or ''
-            if ' '.join(text.split()) == label:
+            values=[node.get('text') or '',node.get('content-desc') or '']
+            if label in [' '.join(text.split()) for text in values]:
                 x1, y1, x2, y2 = map(int, re.findall(r'\d+', node.get('bounds')))
                 adb('shell', 'input', 'tap', str((x1+x2)//2), str((y1+y2)//2))
                 time.sleep(1)
                 return
         time.sleep(1)
     raise AssertionError(f'Missing visible action: {label}')
+
+def enter_text(text):
+    root = tree()
+    fields = [n for n in root.iter('node') if n.get('class') == 'android.widget.EditText']
+    assert fields, 'No editable field visible'
+    x1,y1,x2,y2=map(int,re.findall(r'\d+',fields[0].get('bounds')))
+    adb('shell','input','tap',str((x1+x2)//2),str((y1+y2)//2))
+    adb('shell','input','text',text)
+    info=adb('shell','dumpsys','input_method').decode()
+    if 'mInputShown=true' in info or 'mIsInputViewShown=true' in info:
+        adb('shell','input','keyevent','4')
+    time.sleep(1)
 
 def run():
     adb('shell', 'am', 'force-stop', 'com.fightforge.game')
@@ -64,17 +76,48 @@ def run():
     assert width > height, 'The game must be landscape'
     scale = min(width/1920, height/1080)
     x = (width-1920*scale)/2+960*scale
-    y = (height-1080*scale)/2+220*scale
+    density_text = adb("shell", "wm", "density").decode()
+density = int(re.findall(r"\d+", density_text)[-1])/160
+y = (height-1080*scale)/2+124*density
     adb('shell', 'input', 'tap', str(int(x)), str(int(y)))
     tap('LISTA DE MOVIMIENTOS')
     tap('CERRAR')
     tap('CONTINUAR')
     time.sleep(2)
+    adb('shell', 'input', 'tap', str(int(x)), str(int(y)))
+    tap('SALIR')
+    tap('CREACIÓN')
+    tap('PERSONAJES')
+    tap('CREAR')
+    enter_text('ARCADETEST')
+    tap('FOTO')
+    tap('FABRICAR')
+    tap('LIENZO DE PÍXELES')
+    tap('GUARDAR ANIMACIÓN')
+    tap('ANIMACIONES')
+    tap('QUIETO · 0 FRAMES')
+    tap('FABRICAR')
+    tap('LIENZO DE PÍXELES')
+    tap('GUARDAR ANIMACIÓN')
+    tap('GUARDAR')
+    tap('‹ VOLVER')
+    visible=False
+    for _ in range(8):
+        root=tree()
+        if root is not None and any(n.get('text')=='ARCADETEST' for n in root.iter('node')):
+            visible=True
+            break
+        scroll=next((n for n in root.iter('node') if n.get('scrollable')=='true'),None) if root is not None else None
+        if scroll is not None:
+            a,b,c,d=map(int,re.findall(r'\d+',scroll.get('bounds')))
+            adb('shell','input','swipe',str((a+c)//2),str(d-20),str((a+c)//2),str(b+20),'500')
+        time.sleep(1)
+    assert visible, 'The character created through the editor was not persisted'
     logs = adb('logcat', '-d', '-s', 'AndroidRuntime:E').decode()
     (out/'runtime.log').write_text(logs)
     assert 'Process: com.fightforge.game' not in logs, logs
     assert adb('shell', 'pidof', 'com.fightforge.game').strip(), 'The app exited'
-    (out/'result.txt').write_text('PASS: menu → selection → setup → combat → pause → moves → resume; landscape; no app fatal exception.\n')
+    (out/'result.txt').write_text('PASS: menu → selection → setup → combat → pause → moves → resume → create character → paint photo and idle → save and list; landscape; no app fatal exception.\n')
     print((out/'result.txt').read_text())
 
 try:

@@ -21,7 +21,7 @@ const val FLOOR = 920 * SCALE
 enum class State { IDLE,WALK,RUN,CROUCH_DOWN,CROUCH,CROUCH_UP,JUMP,FALL,AIR_RUN,BLOCK_STAND,BLOCK_CROUCH,BLOCK_AIR,HURT,STUN,DIZZY,KO,DOWN,GETUP,ATTACK,GRABBED,TECH }
 @Serializable enum class Kind { BASIC, COMMAND, ULTIMATE }
 @Serializable enum class BoxKind { DAMAGE, MOVEMENT, TELEPORT, PUNISH, PROJECTILE, SOLID, GHOST, GRAB }
-@Serializable data class Box(val kind: BoxKind, val rect: Rect, val rival: Boolean = false, val returnTrip: Boolean = false, val speed: Int = 0, val gravity: Boolean = false, val freeDirection: Boolean = false, val hp: Int = 50, val behavior: Int = 0, val effect: Int = 6, val harmfulToOwner: Boolean = false, val slots: Int = 1, val entity: String = "player", val both: Boolean = false, val photo: String = "")
+@Serializable data class Box(val kind: BoxKind, val rect: Rect, val rival: Boolean = false, val returnTrip: Boolean = false, val speed: Int = 0, val gravity: Boolean = false, val freeDirection: Boolean = false, val hp: Int = 50, val behavior: Int = 0, val effect: Int = 6, val harmfulToOwner: Boolean = false, val slots: Int = 1, val entity: String = "player", val both: Boolean = false, val photo: String = "", val directionX: Int = 100, val directionY: Int = 0)
 @Serializable data class Move(val name: String, val command: List<String>, val kind: Kind = Kind.BASIC, val startup: Int = 5, val recovery: Int = 5, val extra: Int = 0, val boxes: List<Box> = emptyList(), val powerPercent: Int = 50, val invulnerable: Boolean = false, val antiAir: Boolean = false, val antiGround: Boolean = false, val animation: String = "quieto", val introAnimation: String = "") {
     val active get() = when(kind) { Kind.BASIC -> 4; Kind.COMMAND -> 6; Kind.ULTIMATE -> 8 }
     val duration get() = startup + active + recovery
@@ -31,12 +31,16 @@ enum class State { IDLE,WALK,RUN,CROUCH_DOWN,CROUCH,CROUCH_UP,JUMP,FALL,AIR_RUN,
         return (base.toLong() * (60 + 8*s.damage) * (100+extra) * (100+20*(buttons-1)) * max(40,100-10*(combo-1)) / 100000000).toInt().coerceAtLeast(1)
     }
 }
-@Serializable data class AnimationSettings(val fps: Int=12,val loop: Boolean=true,val enabled: Boolean=true)
-@Serializable data class FighterDef(val id: String, val name: String, val stats: Stats = Stats(), val width: Int = 200, val height: Int = 400, val description: String = "", val moves: List<Move> = emptyList(), val color: Int = 0, val custom: Boolean = false, val animations: Map<String,List<String>> = emptyMap(),val animationSettings: Map<String,AnimationSettings> = emptyMap())
+@Serializable data class AnimationSettings(val fps: Int=12,val loop: Boolean=true,val enabled: Boolean=true,val canvasWidth: Int=0,val canvasHeight: Int=0,val offsetX: Int=0,val offsetY: Int=0)
+@Serializable data class FighterDef(val id: String, val name: String, val stats: Stats = Stats(), val width: Int = 200, val height: Int = 400, val description: String = "", val moves: List<Move> = emptyList(), val color: Int = 0, val custom: Boolean = false, val animations: Map<String,List<String>> = emptyMap(),val animationSettings: Map<String,AnimationSettings> = emptyMap(),val hitEffect: String="sparks",val hurtEffect: String="sparks",val schemaVersion: Int=1)
 object Commands {
     val tokens = setOf("N","NE","E","SE","S","SW","W","NW","A","B","C","D")
     fun normalized(c: List<String>) = c.map { it.trim().uppercase() }
-    fun valid(c: List<String>, kind: Kind): Boolean = c.size in (if(kind == Kind.ULTIMATE) 3 else 1)..8 && c.all { it in tokens } && c.any { it in setOf("A","B","C","D") }
+    fun valid(c: List<String>, kind: Kind): Boolean {
+        val buttons=c.count {it in setOf("A","B","C","D")}
+        val minimum=when(kind){Kind.BASIC -> 1; Kind.COMMAND -> 2; Kind.ULTIMATE -> 3}
+        return c.size in minimum..8 && c.all {it in tokens} && buttons>=1 && (kind!=Kind.BASIC || (c.size<=2 && buttons==1))
+    }
     fun duplicate(c: List<String>, moves: List<Move>) = moves.any { normalized(it.command) == normalized(c) }
     fun match(history: List<Pair<Int,String>>, moves: List<Move>, tick: Int): Move? = moves.filter { m ->
         var i = history.lastIndex; var next = tick
@@ -48,11 +52,11 @@ object Commands {
 }
 object Economy {
     // Milli-points preserve half points and stat multipliers without rounding exploits.
-    fun boxCost(b: Box, stats: Stats): Long {
+    fun boxCost(b: Box, stats: Stats, body: Rect=MotionGeometry.body(200,400)): Long {
         val area = b.rect.w.toLong()*b.rect.h
         val raw = when(b.kind) {
             BoxKind.DAMAGE -> area
-            BoxKind.MOVEMENT -> (abs(b.rect.w).toLong()+abs(b.rect.h))*1000/60 * (if(b.rival) 2 else 1) * (if(b.returnTrip) 2 else 1)
+            BoxKind.MOVEMENT -> MotionGeometry.displacement(b.rect,body).let {(x,y) -> (abs(x).toLong()+abs(y))*1000/60} * (if(b.rival) 2 else 1) * (if(b.returnTrip) 2 else 1)
             BoxKind.TELEPORT -> if(b.rival) 72000L else 24000L
             BoxKind.PUNISH -> -minOf(area,15000)/2
             BoxKind.GRAB -> 30000L
@@ -62,13 +66,13 @@ object Economy {
         return raw*stats.reachCost/100
     }
     fun frameGain(frames: Int, s: Stats): Long = if(frames >= 5) (frames-5)*500L*(50+10*s.speed)/100 else (frames-5)*1000L
-    fun balance(m: Move,s: Stats): Long = frameGain(m.startup,s)+frameGain(m.recovery,s) + (if(m.extra < 0) -m.extra*100L else -m.extra*200L) + (if(m.kind==Kind.ULTIMATE) 20000L+(m.powerPercent-50)*800L else 0) - m.boxes.sumOf { boxCost(it,s) } - (if(m.invulnerable) 40000 else 0) - (if(m.antiAir) 12000 else 0) - (if(m.antiGround) 25000 else 0)
+    fun balance(m: Move,s: Stats,body: Rect=MotionGeometry.body(200,400)): Long = frameGain(m.startup,s)+frameGain(m.recovery,s) + (if(m.extra < 0) -m.extra*100L else -m.extra*200L) + (if(m.kind==Kind.ULTIMATE) 20000L+(m.powerPercent-50)*800L else 0) - m.boxes.sumOf { boxCost(it,s,body) } - (if(m.invulnerable) 40000 else 0) - (if(m.antiAir) 12000 else 0) - (if(m.antiGround) 25000 else 0)
     fun errors(m: Move,s: Stats,body: Rect): List<String> = buildList {
         if(m.name.isBlank()) add("Falta el nombre")
         if(!Commands.valid(m.command,m.kind)) add("Comando inválido")
         if(m.startup !in 1..600 || m.recovery !in 1..600) add("Frames fuera de rango")
         if(m.extra !in -50..100 || m.extra%5 != 0) add("Daño extra inválido")
-        if(balance(m,s)<0) add("Saldo negativo")
+        if(balance(m,s,body)<0) add("Saldo negativo")
         if(m.boxes.none {it.kind in listOf(BoxKind.DAMAGE,BoxKind.PROJECTILE,BoxKind.GRAB,BoxKind.MOVEMENT,BoxKind.TELEPORT) || (it.kind in listOf(BoxKind.SOLID,BoxKind.GHOST) && it.effect==6)}) add("Falta una fuente de daño o movimiento")
         if(m.kind==Kind.BASIC && (m.antiAir || m.antiGround)) add("Esta opción requiere Comando o Ulti")
         if(m.kind!=Kind.ULTIMATE && m.invulnerable) add("La invulnerabilidad requiere Ulti")
@@ -78,6 +82,10 @@ object Economy {
         if(m.boxes.any { it.kind==BoxKind.GRAB } && m.boxes.size>1) add("El agarre es exclusivo")
         if(m.boxes.any {it.kind==BoxKind.GRAB} && m.recovery>60) add("Recuperación máxima del agarre: 60")
         for(b in m.boxes) {
+            if(b.entity !in setOf("player","projectile","solid","ghost")) add("Entidad inválida")
+            if(b.kind in listOf(BoxKind.SOLID,BoxKind.GHOST) && (b.behavior !in setOf(0,6,14,15) || b.effect !in setOf(6,7,8,10))) add("Parámetros de objeto inválidos")
+            if(b.kind==BoxKind.SOLID && b.hp !in 50..1000) add("Vida de objeto inválida")
+            if(b.freeDirection && (b.directionX !in -100..100 || b.directionY !in -100..100 || (b.directionX==0 && b.directionY==0))) add("Dirección inválida")
             if(b.slots !in 1..4) add("Cantidad inválida")
             if(b.rect.w !in 20..800 || b.rect.h !in 20..800) add("Tamaño de hitbox inválido")
             if(b.kind==BoxKind.DAMAGE && (b.rect.w<40 || b.rect.h<40)) add("Daño: mínimo 40×40")
@@ -97,7 +105,12 @@ data class TemplateGeometry(val width: Int,val height: Int) {
         @Synchronized fun cached(w: Int,h: Int) = cache.getOrPut(w to h) { TemplateGeometry(w,h) }
         fun movement(body: Rect,rival: Rect,boxes: List<Box>): Rect {
             var bounds=body.union(rival)
-            for(b in boxes) { bounds=bounds.union(b.rect); if(b.kind in listOf(BoxKind.MOVEMENT,BoxKind.TELEPORT)) bounds=bounds.union(Rect(b.rect.x,b.rect.y,body.w,body.h)) }
+            val movement=boxes.firstOrNull {it.kind==BoxKind.MOVEMENT && it.entity=="player"}
+            val (dx,dy)=movement?.let {MotionGeometry.displacement(it.rect,body)} ?: (0 to 0)
+            val teleport=boxes.firstOrNull {it.kind==BoxKind.TELEPORT && !it.rival}
+            val end=teleport?.rect?.let {Rect(it.x,it.y,body.w,body.h)} ?: body.copy(x=body.x+dx,y=body.y+dy)
+            bounds=bounds.union(end)
+            for(b in boxes) {bounds=bounds.union(b.rect).union(b.rect.copy(x=b.rect.x+end.x-body.x,y=b.rect.y+end.y-body.y))}
             val mx=bounds.w*15/200; val my=bounds.h*15/200
             return Rect((bounds.x-mx)*2,(bounds.y-my)*2,(bounds.w+mx*2)*2,(bounds.h+my*2)*2)
         }
@@ -113,11 +126,12 @@ object AnimationFallback {
 }
 data class Input(val horizontal: Int=0,val vertical: Int=0,val buttons: Int=0)
 object Joystick {
-    fun absolute(x: Int,y: Int,cx: Int,cy: Int,radius: Int): Input {
+    fun absolute(x: Int,y: Int,cx: Int,cy: Int,radius: Int,previous: Input=Input()): Input {
         val dx=x-cx; val dy=y-cy
-        if(dx.toLong()*dx+dy.toLong()*dy < radius.toLong()*radius*18*18/10000) return Input()
-        val h=if(abs(dx)*100>abs(dy)*41) dx.compareTo(0) else 0
-        val v=if(abs(dy)*100>abs(dx)*41) dy.compareTo(0) else 0
+        val dead=if(previous.horizontal!=0 || previous.vertical!=0) 16 else 18
+        if(dx.toLong()*dx+dy.toLong()*dy < radius.toLong()*radius*dead*dead/10000) return Input()
+        val h=if(abs(dx)*100>abs(dy)*(if(previous.horizontal!=0) 37 else 45)) dx.compareTo(0) else 0
+        val v=if(abs(dy)*100>abs(dx)*(if(previous.vertical!=0) 37 else 45)) dy.compareTo(0) else 0
         return Input(h,v)
     }
 }
