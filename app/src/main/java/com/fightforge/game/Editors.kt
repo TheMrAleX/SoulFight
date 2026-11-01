@@ -110,7 +110,7 @@ val animationSlots=listOf("quieto","caminar adelante","caminar atrás","correr a
     val b=Box(boxKind,rect)
     if(boxKind==BoxKind.TELEPORT && m.boxes.any {it.kind==BoxKind.TELEPORT}) message("Solo se permite un teletransporte")
     else if(boxKind==BoxKind.GRAB && m.boxes.isNotEmpty()) pendingGrab=b else candidate(m.copy(boxes=if(boxKind==BoxKind.GRAB) listOf(b) else m.boxes+b))
-   },{index,rect -> val list=m.boxes.toMutableList(); list[index]=list[index].copy(rect=rect); candidate(m.copy(boxes=list))},{index -> selected=index}) },update={it.boxes=m.boxes; it.selected=selected},modifier=Modifier.weight(1f).fillMaxWidth())
+   },{index,rect -> val list=m.boxes.toMutableList(); list[index]=list[index].copy(rect=rect); candidate(m.copy(boxes=list))},{index -> selected=index},{index -> m=m.copy(boxes=m.boxes.filterIndexed {i,_ -> i!=index}); selected=-1}) },update={it.boxes=m.boxes; it.selected=selected},modifier=Modifier.weight(1f).fillMaxWidth())
    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.End) {FloatingActionButton(onClick={if(selected in m.boxes.indices){m=m.copy(boxes=m.boxes.filterIndexed {index,_ -> index!=selected}); selected=-1} else message("Selecciona una hitbox para borrarla")},modifier=Modifier.size(56.dp),containerColor=ForgeColors.high,contentColor=ForgeColors.danger){Icon(ForgeIcons.Trash,"BORRAR HITBOX SELECCIONADA")}}
   }
   pendingGrab?.let {grab -> AlertDialog(onDismissRequest={pendingGrab=null},title={Text("AÑADIR AGARRE")},text={Text("Se eliminarán las otras hitboxes de este movimiento.")},confirmButton={TextButton({candidate(m.copy(boxes=listOf(grab))); pendingGrab=null}){Text("CONTINUAR")}},dismissButton={TextButton({pendingGrab=null}){Text("CANCELAR")}})}

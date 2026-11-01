@@ -66,6 +66,19 @@ class ForgeInstrumentation: Instrumentation() {
      view.tool="BORRADOR"; view.brush=4; point(126f,126f); check(Color.alpha(bitmap.getPixel(63,63))==0)
      bitmap.recycle()
     }; count++
+    runOnMainSync {
+     var removed=-1; var added=0
+     val hitboxes=HitboxView(context,Defaults.roster()[0],listOf(Box(BoxKind.DAMAGE,Rect(100,-300,80,80))),{BoxKind.DAMAGE},{added++},{_,_ -> error("Unexpected resize")},{},{removed=it})
+     android.widget.FrameLayout(context).addView(hitboxes); hitboxes.layout(0,0,1200,950); hitboxes.selected=0
+     val bitmap=Bitmap.createBitmap(1200,950,Bitmap.Config.ARGB_8888); hitboxes.draw(Canvas(bitmap))
+     val pixels=IntArray(1200*950); bitmap.getPixels(pixels,0,1200,0,0,1200,950)
+     var sx=0L; var sy=0L; var n=0
+     pixels.forEachIndexed {index,color -> if(color==0xFFFF3B4E.toInt()){sx+=index%1200; sy+=index/1200; n++}}
+     check(n>0); val x=sx.toFloat()/n; val y=sy.toFloat()/n; val now=android.os.SystemClock.uptimeMillis()
+     val down=MotionEvent.obtain(now,now,MotionEvent.ACTION_DOWN,x,y,0); val up=MotionEvent.obtain(now,now+1,MotionEvent.ACTION_UP,x,y,0)
+     hitboxes.onTouchEvent(down); hitboxes.onTouchEvent(up); down.recycle(); up.recycle(); bitmap.recycle()
+     check(removed==0 && added==0)
+    }; count++
     val broken=hero.copy(id="broken-$id",name="RECUPERADO"); store.character(broken)
     val file=File(context.filesDir,"save.json"); val raw=file.readText(); file.writeText("{ damaged save"); check(Storage(context).data.characters.any {it.id==broken.id}); file.writeText(raw); count++
     store.deleteCharacter(broken.id); check(!File(context.filesDir,"characters/${broken.id}").exists() && Storage(context).data.characters.none {it.id==broken.id}); count++
