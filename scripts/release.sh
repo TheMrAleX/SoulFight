@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 cd "$(dirname "$0")/.."
+if [[ -n "${gh_astra:-}" ]]; then export GH_TOKEN="$gh_astra"; fi
 version="${1:?Usage: scripts/release.sh 0.1.1}"
 if [[ -f /workspace/tools/jdk-17.0.21+9/bin/java ]]; then source scripts/environment.sh; fi
 signing_dir="${FIGHTFORGE_SIGNING_DIR:-/workspace/fightforge-signing}"

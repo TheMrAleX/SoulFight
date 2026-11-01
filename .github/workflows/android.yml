@@ -19,6 +19,8 @@ jobs:
           distribution: temurin
           java-version: '17'
       - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
       - uses: gradle/actions/setup-gradle@v4
       - name: SDK
         run: sdkmanager 'platforms;android-34' 'build-tools;34.0.0'
@@ -60,3 +62,42 @@ jobs:
       - name: Remove runner signing material
         if: always()
         run: rm -rf "$RUNNER_TEMP/signing"
+  publish-prepared:
+    if: github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[publish-release]')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: source
+      - uses: actions/checkout@v4
+        with:
+          ref: release-artifacts/v0.1.0
+          path: prepared
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools
+      - name: Verify prepared signed APK
+        run: |
+          sdkmanager 'build-tools;34.0.0'
+          cd prepared
+          sha256sum --check SHA256SUMS
+          "$ANDROID_HOME/build-tools/34.0.0/apksigner" verify --verbose --print-certs FightForge.apk | tee signature.txt
+          grep -F 'Signer #1 certificate SHA-256 digest: a8c231eb36ba8c1682da32929d95e16180a4fa62482ef05ba8f4a4feac2073de' signature.txt
+      - name: Publish verified release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          SOURCE_COMMIT="$(cat prepared/SOURCE_COMMIT)"
+          if gh release view v0.1.0 > /dev/null 2>&1; then
+            gh release upload v0.1.0 prepared/FightForge.apk prepared/SHA256SUMS --clobber
+          else
+            gh release create v0.1.0 prepared/FightForge.apk prepared/SHA256SUMS --target "$SOURCE_COMMIT" --title 'Fight Forge 0.1.0' --prerelease --notes-file source/RELEASE_NOTES.md
+          fi
