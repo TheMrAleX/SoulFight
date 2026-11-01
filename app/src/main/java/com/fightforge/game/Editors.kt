@@ -6,6 +6,8 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.input.pointer.pointerInput
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
@@ -188,7 +190,7 @@ val animationSlots=listOf("quieto","caminar adelante","caminar atrás","correr a
 @Composable fun Counter(label: String,value: Int,min: Int,max: Int,step: Int=1,change: (Int)->Unit) {
  Row(verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(8.dp)) {Text(label,Modifier.weight(1f)); RepeatControl("−"){change((value-step).coerceAtLeast(min))}; Text(value.toString()); RepeatControl("+"){change((value+step).coerceAtMost(max))}}
 }
-@Composable fun CheckRow(label: String,value: Boolean,change: (Boolean)->Unit) { Row(verticalAlignment=Alignment.CenterVertically) { Checkbox(value,change); Text(label) } }
+@Composable fun CheckRow(label: String,value: Boolean,change: (Boolean)->Unit) { Row(Modifier.heightIn(min=48.dp).toggleable(value=value,role=Role.Checkbox,onValueChange=change),verticalAlignment=Alignment.CenterVertically) { Checkbox(value,null); Text(label) } }
 @Composable fun PixelEditor(store: Storage,f: FighterDef,slot: String,save: (List<String>,Int)->Unit,back: ()->Unit) {PixelWorkbench(store,f,slot,save,back)}
 
 @Composable fun AnimationPreview(f: FighterDef,slot: String,back: ()->Unit) {

@@ -60,4 +60,13 @@ class AirCombatTest {
   assertEquals(FLOOR,g.fighters[0].y); assertEquals(State.KO,g.fighters[0].state)
  }
 
+ @Test fun resettingPracticePositionsCancelsAirborneActionsWithoutHealing() {
+  val g=Combat(fighter(),fighter(),practice=true); g.step(Input(vertical=-1),Input(vertical=-1)); g.step(Input(buttons=1),Input())
+  g.fighters[0].hp=3210; g.fighters[0].power=720; val tick=g.tick
+  g.resetPositions()
+  assertEquals(tick,g.tick); assertEquals(3210,g.fighters[0].hp); assertEquals(720,g.fighters[0].power)
+  g.fighters.forEach {assertEquals(FLOOR,it.y); assertEquals(0,it.vy); assertNull(it.move); assertEquals(State.IDLE,it.state); assertEquals(0,it.relativeMotion)}
+  assertEquals(1000*SCALE,g.fighters[0].x); assertEquals(1600*SCALE,g.fighters[1].x)
+ }
+
 }

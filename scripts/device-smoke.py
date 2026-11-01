@@ -61,6 +61,14 @@ def enter_text(text):
         adb('shell','input','keyevent','4')
     time.sleep(1)
 
+def assert_toggle(label, expected):
+    root=tree()
+    for n in root.iter('node'):
+        if n.get('text')==label and n.get('checkable')=='true':
+            assert (n.get('checked')=='true')==expected, f'{label}: incorrect checked state'
+            return
+    raise AssertionError(f'Missing accessible toggle: {label}')
+
 def run():
     adb('shell', 'am', 'force-stop', 'com.fightforge.game')
     adb('logcat', '-c')
@@ -119,11 +127,31 @@ def run():
             adb('shell','input','swipe',str((a+c)//2),str(d-20),str((a+c)//2),str(b+20),'500')
         time.sleep(1)
     assert visible, 'The character created through the editor was not persisted'
+    tap('‹ VOLVER')
+    tap('‹ VOLVER')
+    tap('UN JUGADOR')
+    tap('PRÁCTICA')
+    tap('CONTINUAR')
+    tap('PELEAR')
+    time.sleep(2)
+    adb('shell','input','tap',str(int(x)),str(int(y)))
+    assert_toggle('HITBOXES',True)
+    assert_toggle('ENTRADAS',True)
+    (out/'practice-pause.png').write_bytes(adb('exec-out','screencap','-p'))
+    tap('HITBOXES')
+    assert_toggle('HITBOXES',False)
+    tap('ENTRADAS')
+    assert_toggle('ENTRADAS',False)
+    tap('CONTINUAR')
+    time.sleep(1)
+    (out/'practice.png').write_bytes(adb('exec-out','screencap','-p'))
+    adb('shell','input','tap',str(int(x)),str(int(y)))
+    tap('SALIR')
     logs = adb('logcat', '-d', '-s', 'AndroidRuntime:E').decode()
     (out/'runtime.log').write_text(logs)
     assert 'Process: com.fightforge.game' not in logs, logs
     assert adb('shell', 'pidof', 'com.fightforge.game').strip(), 'The app exited'
-    (out/'result.txt').write_text('PASS: menu → selection → setup → combat → pause → moves → resume → create character → paint photo and idle → save and list; landscape; no app fatal exception.\n')
+    (out/'result.txt').write_text('PASS: menu → selection → setup → combat → pause → moves → resume → create character → paint photo and idle → save and list; shop confirmation/cancel; practice toggles; landscape; no app fatal exception.\n')
     print((out/'result.txt').read_text())
 
 try:
