@@ -46,6 +46,17 @@ class Storage(val context: Context) {
  fun owned(f: FighterDef)=f.custom || f.id in data.purchased
  fun buy(f: FighterDef): Boolean { val price=Defaults.prices[Defaults.names.indexOf(f.name)]; if(owned(f) || data.coins<price) return false; update(data.copy(coins=data.coins-price,purchased=data.purchased+f.id)); return true }
  fun character(f: FighterDef) { require(f.stats.valid()); require(f.name.isNotBlank() && f.name.length<=16); val chars=data.characters.filterNot { it.id==f.id }+f; update(data.copy(characters=chars)); val directory=File(context.filesDir,"characters/${f.id}"); directory.mkdirs(); val file=File(directory,"character.json"); val temp=File(directory,"character.tmp"); temp.writeText(json.encodeToString(f)); check(temp.renameTo(file)) }
+ fun deleteCharacter(id: String) {
+  require(data.characters.any {it.id==id})
+  update(data.copy(characters=data.characters.filterNot {it.id==id}))
+  val directory=File(context.filesDir,"characters/$id")
+  require(directory.canonicalPath.startsWith(File(context.filesDir,"characters").canonicalPath+File.separator))
+  directory.deleteRecursively()
+ }
+ fun reset() {
+  update(SaveData())
+  listOf("characters","effects","stages","music","ui").forEach {File(context.filesDir,it).deleteRecursively()}
+ }
  fun importImage(uri: android.net.Uri,folder: String,expectedWidth: Int=0,expectedHeight: Int=0): String {
   val options=BitmapFactory.Options().apply { inJustDecodeBounds=true }; context.contentResolver.openInputStream(uri).use { BitmapFactory.decodeStream(it,null,options) }
   require(options.outWidth>0 && options.outHeight>0) { "Imagen no válida" }

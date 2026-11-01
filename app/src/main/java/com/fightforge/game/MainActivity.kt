@@ -103,12 +103,12 @@ class MainActivity: ComponentActivity() {
   "stages" -> StageEditor(store,{navigate("creation"); sync()},{message=it})
   "interface" -> InterfaceEditor(store,{navigate("creation")},{message=it})
   "shop" -> Frame("TIENDA · ${data.coins} MONEDAS",::back) { LazyColumn(verticalArrangement=Arrangement.spacedBy(8.dp)) { items(6) { i -> val f=Defaults.roster()[i]; Row(Modifier.fillMaxWidth().background(ForgeColors.surface).padding(8.dp),verticalAlignment=Alignment.CenterVertically) { Text("${f.name} · ${f.description}",Modifier.weight(1f)); ForgeButton(if(store.owned(f)) "COMPRADO" else "${Defaults.prices[i]} MONEDAS",enabled=!store.owned(f)) { purchase=f } } } } }
-  "options" -> Options(data.settings,{ store.update(store.data.copy(settings=it)); sync() },{ store.update(SaveData()); sync(); message="Datos restablecidos" },::back)
+  "options" -> Options(data.settings,{ store.update(store.data.copy(settings=it)); sync() },{ store.reset(); sync(); message="Datos restablecidos" },::back)
   "lan" -> LanScreen(store,selected,::back,{message=it})
  }}
  SnackbarHost(snack,Modifier.align(Alignment.BottomCenter).padding(16.dp)){value -> Snackbar(snackbarData=value,containerColor=ForgeColors.high,contentColor=ForgeColors.text,actionColor=ForgeColors.secondary,shape=CutCornerShape(10.dp))}
  }
- if(delete!=null) AlertDialog(onDismissRequest={delete=null},title={Text("¿BORRAR ${delete!!.name}?")},text={Text("Se borrará el personaje creado.")},confirmButton={TextButton({store.update(store.data.copy(characters=store.data.characters.filterNot { it.id==delete!!.id })); sync(); delete=null}){Text("BORRAR")}},dismissButton={TextButton({delete=null}){Text("CANCELAR")}})
+ if(delete!=null) AlertDialog(onDismissRequest={delete=null},title={Text("¿BORRAR ${delete!!.name}?")},text={Text("Se borrará el personaje creado.")},confirmButton={TextButton({store.deleteCharacter(delete!!.id); sync(); delete=null}){Text("BORRAR")}},dismissButton={TextButton({delete=null}){Text("CANCELAR")}})
  if(purchase!=null) AlertDialog(onDismissRequest={purchase=null},title={Text("COMPRAR ${purchase!!.name}")},text={Text("Precio: ${Defaults.prices[Defaults.names.indexOf(purchase!!.name)]} monedas")},confirmButton={TextButton({if(!store.buy(purchase!!)) message="No tienes suficientes monedas"; sync(); purchase=null}){Text("COMPRAR")}},dismissButton={TextButton({purchase=null}){Text("CANCELAR")}})
  if(movesDialog) AlertDialog(onDismissRequest={movesDialog=false},title={Text("MOVIMIENTOS")},text={Column { selected.moves.forEach { Text("${it.name}: ${it.command.joinToString(" → ")}") } }},confirmButton={TextButton({movesDialog=false}){Text("CERRAR")}})
 }

@@ -26,6 +26,9 @@ class ForgeInstrumentation: Instrumentation() {
    try {
     fun png(name: String,w: Int,h: Int,color: Int): String {val b=Bitmap.createBitmap(w,h,Bitmap.Config.ARGB_8888); Canvas(b).drawColor(color); val file=File(dir,name); file.outputStream().use {check(b.compress(Bitmap.CompressFormat.PNG,100,it))}; b.recycle(); return file.absolutePath}
     val idle=png("idle.png",460,920,Color.CYAN); val photo=png("photo.png",256,256,Color.RED)
+    val adjusted=store.importImage(android.net.Uri.fromFile(File(photo)),"characters/$id/import",128,256)
+    val adjustedBitmap=android.graphics.BitmapFactory.decodeFile(adjusted)
+    check(adjustedBitmap.width==128 && adjustedBitmap.height==256 && Color.alpha(adjustedBitmap.getPixel(0,0))==0 && adjustedBitmap.getPixel(64,128)==Color.RED); adjustedBitmap.recycle(); count++
     val effect=EffectDef(id,"IMPACTO DE PRUEBA",listOf(photo),15,150)
     val stage=StageDef(id,"ESCENARIO DE PRUEBA",listOf(png("stage0.png",1920,1080,Color.DKGRAY),png("stage1.png",1920,1080,Color.BLUE)),18)
     store.update(original.copy(effectsLibrary=original.effectsLibrary+effect,stages=listOf(stage)))
@@ -62,6 +65,7 @@ class ForgeInstrumentation: Instrumentation() {
     }; count++
     val broken=hero.copy(id="broken-$id",name="RECUPERADO"); store.character(broken)
     val file=File(context.filesDir,"save.json"); val raw=file.readText(); file.writeText("{ damaged save"); check(Storage(context).data.characters.any {it.id==broken.id}); file.writeText(raw); count++
+    store.deleteCharacter(broken.id); check(!File(context.filesDir,"characters/${broken.id}").exists() && Storage(context).data.characters.none {it.id==broken.id}); count++
     result.putBoolean("passed",true); result.putString("stream","PASS: $count Android acceptance checks; TCP lockstep 3600 ticks, stage and character/effect transfer, SHA cache reuse and repair, persistence, pixel tools and 50 undo/redo steps.\n"); result.putInt("checks",count)
    } finally {store.update(original); File(context.filesDir,"characters/$id").deleteRecursively(); File(context.filesDir,"characters/broken-$id").deleteRecursively()}
    finish(Activity.RESULT_OK,result)
