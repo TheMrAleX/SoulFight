@@ -14,5 +14,5 @@ object ForgeColors {
 }
 @Composable fun ForgeTheme(content: @Composable ()->Unit) {
  val type=TextStyle(fontFamily=FontFamily.SansSerif,fontWeight=FontWeight.Bold,letterSpacing=1.sp)
- MaterialTheme(colorScheme=darkColorScheme(primary=ForgeColors.primary,secondary=ForgeColors.secondary,background=ForgeColors.bg,surface=ForgeColors.surface,onSurface=ForgeColors.text,onBackground=ForgeColors.text),typography=Typography(titleLarge=type.copy(fontSize=28.sp),titleMedium=type.copy(fontSize=20.sp),bodyMedium=type.copy(fontSize=14.sp),labelLarge=type.copy(fontSize=14.sp)),content=content)
+ MaterialTheme(colorScheme=darkColorScheme(primary=ForgeColors.primary,secondary=ForgeColors.secondary,onPrimary=ForgeColors.text,onSecondary=ForgeColors.text,background=ForgeColors.bg,surface=ForgeColors.surface,onSurface=ForgeColors.text,onBackground=ForgeColors.text),typography=Typography(titleLarge=type.copy(fontSize=28.sp),titleMedium=type.copy(fontSize=20.sp),bodyMedium=type.copy(fontSize=14.sp),labelLarge=type.copy(fontSize=14.sp)),content=content)
 }

@@ -23,6 +23,12 @@ def tree():
 def tap(label):
     for _ in range(12):
         root = tree()
+        tutorial = next((n for n in root.iter('node') if n.get('package') == 'android' and (n.get('text') or '').upper() == 'GOT IT'), None)
+        if tutorial is not None:
+            x1, y1, x2, y2 = map(int, re.findall(r'\d+', tutorial.get('bounds')))
+            adb('shell', 'input', 'tap', str((x1+x2)//2), str((y1+y2)//2))
+            time.sleep(1)
+            continue
         for node in root.iter('node'):
             text = node.get('text') or node.get('content-desc') or ''
             if ' '.join(text.split()) == label:
