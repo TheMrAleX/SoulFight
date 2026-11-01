@@ -8,6 +8,7 @@ import kotlin.math.*
 class FightView(context: Context,val game: Combat,val ai: Ai,@Volatile var settings: Settings,val stage: Int,val audio: ProceduralAudio,val paused: ()->Unit,val finished: (Int)->Unit,val network: NetworkMatch?=null,val networkError: (String)->Unit={}): SurfaceView(context),SurfaceHolder.Callback,Runnable {
  @Volatile private var running=false
  @Volatile var suspended=false
+  set(value){field=value; if(value){input=Input(); joystickId=-1; pointerPositions.clear(); joystickX=0f; joystickY=0f}}
  private var worker: Thread?=null
  private val pointerPositions=mutableMapOf<Int,Pair<Float,Float>>()
  @Volatile private var input=Input()

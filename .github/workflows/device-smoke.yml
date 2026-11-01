@@ -54,7 +54,7 @@ jobs:
         run: |
           set -euo pipefail
           adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
-          timeout 180 adb shell am instrument -w com.fightforge.game.test/com.fightforge.game.ForgeInstrumentation | tee /tmp/fightforge-device-evidence/instrumentation.txt
+          timeout 180 adb shell am instrument -w -r com.fightforge.game.test/com.fightforge.game.ForgeInstrumentation | tee /tmp/fightforge-device-evidence/instrumentation.txt
           grep -q 'passed=true' /tmp/fightforge-device-evidence/instrumentation.txt
           grep -q 'INSTRUMENTATION_CODE: -1' /tmp/fightforge-device-evidence/instrumentation.txt
       - uses: actions/upload-artifact@v4

@@ -58,8 +58,8 @@ val animationSlots=listOf("quieto","caminar adelante","caminar atrás","correr a
       if(section=="FOTO") slot="foto"
       val slots=when(section) { "FOTO" -> listOf("foto"); "ANIMACIONES" -> animationSlots; else -> f.animations.keys.filter { it !in animationSlots && it!="foto" } }
       if(section=="ANIMACIONES EXTRA") { OutlinedTextField(extra,{extra=it},label={Text("NOMBRE DE ANIMACIÓN")}); ForgeButton("AÑADIR ANIMACIÓN") { if(extra.isNotBlank() && extra !in f.animations && extra !in animationSlots) {edit(f.copy(animations=f.animations+(extra to emptyList()))); slot=extra; extra=""} }; if(slots.isEmpty()) Text("Crea una animación extra para asignarla a tus movimientos.") }
-      slots.forEach { name -> ForgeButton("$name · ${f.animations[name]?.size ?: 0} FRAMES",Modifier.fillMaxWidth(),slot!=name) {slot=name} }
-      Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) { ForgeButton("IMPORTAR",secondary=true) {imports.launch("image/png")}; ForgeButton("FABRICAR",secondary=true) {painting=true}; ForgeButton("DESCARGAR",secondary=true) { runCatching { store.template(f,slot) }.onSuccess {message("Plantilla guardada en la galería")}.onFailure {message(it.message ?: "Error al guardar")} } }
+      Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)) {slots.forEach { name -> ForgeButton("$name · ${f.animations[name]?.size ?: 0} FRAMES",secondary=slot!=name) {slot=name} }}
+      Row(Modifier.horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(8.dp)) { ForgeButton("IMPORTAR",secondary=true) {imports.launch("image/png")}; ForgeButton("FABRICAR",secondary=true) {painting=true}; ForgeButton("DESCARGAR",secondary=true) { runCatching { store.template(f,slot) }.onSuccess {message("Plantilla guardada en la galería")}.onFailure {message(it.message ?: "Error al guardar")} } }
       if(slot!="foto") {
        val config=f.animationSettings[slot] ?: AnimationSettings()
        Counter("FPS",config.fps,1,30){edit(f.copy(animationSettings=f.animationSettings+(slot to config.copy(fps=it))))}
