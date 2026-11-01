@@ -49,6 +49,7 @@ jobs:
       - name: Exercise actual gameplay navigation
         run: python3 scripts/device-smoke.py
       - name: Exercise TCP transport, assets, persistence and pixel editor
+        if: always()
         run: |
           adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
           adb shell am instrument -w com.fightforge.game.test/com.fightforge.game.ForgeInstrumentation | tee /tmp/fightforge-device-evidence/instrumentation.txt

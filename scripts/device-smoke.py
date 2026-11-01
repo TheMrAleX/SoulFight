@@ -125,6 +125,9 @@ try:
 except Exception:
     for name, args in [
         ('failure.png', ('exec-out', 'screencap', '-p')),
+        ('logcat-full.txt', ('logcat','-d')),
+        ('window.txt', ('shell','dumpsys','window')),
+        ('graphics.txt', ('shell','dumpsys','gfxinfo','com.fightforge.game')),
         ('runtime.log', ('logcat', '-d', '-s', 'AndroidRuntime:E', 'ActivityTaskManager:I', 'ActivityManager:I')),
     ]:
         try:

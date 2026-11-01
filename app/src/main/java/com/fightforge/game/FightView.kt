@@ -5,8 +5,9 @@ import android.view.*
 import com.fightforge.engine.*
 import kotlin.math.*
 
-class FightView(context: Context,val game: Combat,val ai: Ai,val settings: Settings,val stage: Int,val audio: ProceduralAudio,val paused: ()->Unit,val finished: (Int)->Unit,val network: NetworkMatch?=null,val networkError: (String)->Unit={}): SurfaceView(context),SurfaceHolder.Callback,Runnable {
+class FightView(context: Context,val game: Combat,val ai: Ai,@Volatile var settings: Settings,val stage: Int,val audio: ProceduralAudio,val paused: ()->Unit,val finished: (Int)->Unit,val network: NetworkMatch?=null,val networkError: (String)->Unit={}): SurfaceView(context),SurfaceHolder.Callback,Runnable {
  @Volatile private var running=false
+ @Volatile var suspended=false
  private var worker: Thread?=null
  private val pointerPositions=mutableMapOf<Int,Pair<Float,Float>>()
  @Volatile private var input=Input()
@@ -36,6 +37,7 @@ class FightView(context: Context,val game: Combat,val ai: Ai,val settings: Setti
  override fun run() {
   var previous=System.nanoTime(); var accumulator=0L; val step=1_000_000_000L/60
   while(running) {
+   if(suspended){previous=System.nanoTime(); accumulator=0L; Thread.sleep(16); continue}
    val now=System.nanoTime(); accumulator+=(now-previous).coerceAtMost(step*5); previous=now
    while(accumulator>=step) {
     val before=game.fighters.sumOf { it.hp }
