@@ -15,14 +15,24 @@ def adb(*args):
     return subprocess.check_output(['adb', *args], timeout=int(os.environ.get("ADB_TIMEOUT", "30")))
 
 def tree():
-    adb('shell', 'uiautomator', 'dump', '/sdcard/fightforge-ui.xml')
-    data = adb('shell', 'cat', '/sdcard/fightforge-ui.xml')
+    path = '/data/local/tmp/fightforge-ui.xml'
+    adb('shell', 'rm', '-f', path)
+    result = adb('shell', 'uiautomator', 'dump', path)
+    with (out/'uiautomator.log').open('ab') as log:
+        log.write(result + b'\n')
+    try:
+        data = adb('shell', 'cat', path)
+    except subprocess.CalledProcessError:
+        return None
     (out/'last-ui.xml').write_bytes(data)
     return ET.fromstring(data)
 
 def tap(label):
     for _ in range(12):
         root = tree()
+        if root is None:
+            time.sleep(1)
+            continue
         tutorial = next((n for n in root.iter('node') if n.get('package') == 'android' and (n.get('text') or '').upper() == 'GOT IT'), None)
         if tutorial is not None:
             x1, y1, x2, y2 = map(int, re.findall(r'\d+', tutorial.get('bounds')))
