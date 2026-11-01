@@ -43,3 +43,5 @@ GitHub Actions construye tests y APK debug en pushes y PR. Para firmar tags requ
 Esta versión todavía no cumple toda la especificación comercial. El pixel editor tiene lápiz, borrador, relleno, línea, rectángulo, cuentagotas, historial, paleta HSV y zoom/paneo; faltan onion skin y una tira de animación con reproducción integrada. No están completos los efectos personalizados con sonido/escala/asignación, las migraciones entre esquemas futuros, el intercambio LAN de escenarios, y la configuración avanzada de sonidos en efectos. La importación de sprites se escala al renderizar y todavía no ofrece el diálogo de ajuste de dimensiones. Faltan el pulido de transiciones, previews Compose de los tres tamaños y parte de la presentación avanzada del HUD.
 
 Las pruebas de motor y compilación no equivalen a una certificación de rendimiento en teléfonos ni a una validación LAN con dos dispositivos físicos. TRACEABILITY.md distingue cobertura automatizada y comprobaciones manuales.
+
+El código de `main` incluye una corrección posterior para hashes de paquetes LAN estables. Se validó localmente con 23 pruebas; todavía no está incluida en el APK publicado v0.1.0.

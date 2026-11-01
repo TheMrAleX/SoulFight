@@ -2,6 +2,7 @@
 """Exercise the actual Android navigation into combat and back to pause."""
 from pathlib import Path
 import re
+import os
 import struct
 import subprocess
 import time
@@ -11,7 +12,7 @@ out = Path('/tmp/fightforge-device-evidence')
 out.mkdir(exist_ok=True)
 
 def adb(*args):
-    return subprocess.check_output(['adb', *args], timeout=30)
+    return subprocess.check_output(['adb', *args], timeout=int(os.environ.get("ADB_TIMEOUT", "30")))
 
 def tree():
     adb('shell', 'uiautomator', 'dump', '/sdcard/fightforge-ui.xml')

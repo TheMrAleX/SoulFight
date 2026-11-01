@@ -6,12 +6,11 @@ import java.security.MessageDigest
 import java.util.zip.*
 object CharacterPackages {
  fun encode(store: Storage,f: FighterDef): ByteArray {
-  val output=ByteArrayOutputStream(); val paths=(f.animations.values.flatten()+f.moves.flatMap {it.boxes}.map {it.photo}.filter {it.isNotEmpty()}).distinct(); val mapping=paths.mapIndexed { i,path -> path to "assets/$i.png" }.toMap()
+  val paths=(f.animations.values.flatten()+f.moves.flatMap {it.boxes}.map {it.photo}.filter {it.isNotEmpty()}).distinct(); val mapping=paths.mapIndexed { i,path -> path to "assets/$i.png" }.toMap()
   val safe=f.copy(moves=f.moves.map {m -> m.copy(boxes=m.boxes.map {b -> b.copy(photo=mapping[b.photo] ?: "")})},animations=f.animations.mapValues {(_,frames) -> frames.map {mapping.getValue(it)}})
-  ZipOutputStream(output).use {zip ->
-   zip.putNextEntry(ZipEntry("character.json")); zip.write(store.json.encodeToString(safe).toByteArray()); zip.closeEntry()
-   paths.forEach {path -> val file=File(path); require(file.canonicalPath.startsWith(store.context.filesDir.canonicalPath+File.separator)); require(file.length()<=8*1024*1024); zip.putNextEntry(ZipEntry(mapping.getValue(path))); file.inputStream().use {it.copyTo(zip)}; zip.closeEntry()}
-  }; require(output.size()<=8*1024*1024){"Paquete demasiado grande (máximo 8 MB)"}; return output.toByteArray()
+  val files=linkedMapOf("character.json" to store.json.encodeToString(safe).toByteArray())
+  paths.forEach {path -> val file=File(path); require(file.canonicalPath.startsWith(store.context.filesDir.canonicalPath+File.separator)); require(file.length()<=8*1024*1024); files[mapping.getValue(path)]=file.readBytes()}
+  return AssetArchive.encode(files)
  }
  fun decode(store: Storage,bytes: ByteArray): FighterDef {
   require(bytes.size<=8*1024*1024); val hash=MessageDigest.getInstance("SHA-256").digest(bytes).joinToString(""){"%02x".format(it)}; val dir=File(store.context.cacheDir,"packages/$hash"); dir.mkdirs()

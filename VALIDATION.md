@@ -9,3 +9,9 @@
 - Sin medición de 60 FPS en dispositivo físico y sin prueba de dos teléfonos WiFi. Las comprobaciones visuales de TRACEABILITY siguen pendientes.
 
 - GitHub Actions ejecutó correctamente tests y compilación en un runner independiente. El job de publicación verificó SHA-256 y el certificado y adjuntó `FightForge.apk` y `SHA256SUMS` a la release pública preliminar `v0.1.0`. Se precreó el tag exacto mediante Git para evitar el límite de creación de tags del token de Actions.
+
+## Corrección posterior conservada en el código
+
+`main` incorpora un ZIP determinista para estabilizar los hashes de caché LAN: 23 pruebas JVM aprobadas, 0 fallos/errores/omitidas, y `test assembleDebug` aprobado. Esta corrección no está incluida en el APK de v0.1.0 y no se ha publicado una segunda release.
+
+Android 10 completó el arranque e instaló el APK. El recorrido local no terminó: UIAutomator superó 30 segundos y la captura de la máquina emulada presentó corrupción gráfica. No se cuenta como prueba funcional aprobada ni como defecto demostrado del juego.
