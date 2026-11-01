@@ -21,13 +21,13 @@ Las rutas indicadas están en `engine/src/main/kotlin/com/fightforge/engine` o `
 | 15 | Models.kt / Combat.kt | CompletionTest: resistencia y desplazamiento real | parcial |
 | 16 | Models.kt / Combat.kt | EngineTest.movementMultipliers | parcial |
 | 17 | Models.kt | EngineTest.damageButtons | automática |
-| 18 | Models.kt / Storage.kt | Comprobar guía, unión y leyenda completa | parcial |
+| 18 | Models.kt / MotionGeometry.kt / Storage.kt | MovementTemplateTest: rival, teletransporte y recorrido combinado; guía de galería manual | parcial |
 | 19 | Combat.kt / Models.kt | EngineTest.grabClash; CompletionTest: alcance completo de empate | parcial |
 | 20 | Models.kt | EngineTest.stats | automática |
-| 21 | Editors.kt / EditorViews.kt | Borrar seleccionada y última hitbox | manual |
+| 21 | Editors.kt / EditorViews.kt | ForgeInstrumentation: toque en chip elimina sin crear otra hitbox; papelera y BORRAR ÚLTIMA | parcial |
 | 22 | Editors.kt | Añadir, renombrar y borrar animación extra | manual |
 | 23 | Models.kt / Editors.kt | EngineTest.budget / rejectNegativeBalance | automática |
-| 24 | EditorViews.kt / Combat.kt | CompletionTest: desplazamiento y plantillas; revisar flecha en HitboxView | parcial |
+| 24 | EditorViews.kt / Combat.kt / MotionGeometry.kt | CompletionTest y MovementTemplateTest; flecha en HitboxView y destino fijo en preview | parcial |
 | 25 | Combat.kt | CompletionTest: teletransporte exacto X/Y; revisar alineación de PNG | manual |
 | 26 | Models.kt / Editors.kt | Foto opcional no forma parte del coste | manual |
 | 27 | Editors.kt | Redimensionar hitbox con saldo suficiente e insuficiente | manual |
@@ -48,3 +48,9 @@ El workflow `Android device smoke` ejecuta `scripts/device-smoke.py` sobre un An
 `ForgeInstrumentation` comprueba paquetes de personajes y efectos estables, intercambio de escenarios animados, dos pares TCP con 3600 ticks y hashes iguales, segunda conexión sin retransmitir recursos, reparación de caché corrupta, persistencia/recuperación y 50 pasos de deshacer/rehacer con relleno y borrador. Los resultados de una ejecución solo se consideran aprobados cuando el workflow termina con éxito.
 
 Pendiente de validación en hardware: 60 FPS sostenidos en gama media, audio/vibración de cada fabricante y descubrimiento NSD entre dos teléfonos físicos. Las filas manuales anteriores son una lista de revisión; no implican que esas comprobaciones físicas hayan ocurrido.
+
+## Regresiones de combate aéreo y reinicio
+
+`AirCombatTest` compara cada frame de un salto atacando con el mismo salto sin ataque, comprueba control horizontal, caída durante daño y K.O., aterrizaje antes de levantarse, estado al terminar recuperación, pausa de ulti de 60 ticks, reinicio de posiciones sin cambiar vida/poder y reinicio completo con checksum idéntico al inicial.
+
+La instrumentación TCP intercala saltos y ataques durante 3600 ticks y exige que la velocidad vertical avance en los frames de ataque aéreo. También comprueba compra persistente sin doble cargo y borrado por toque del chip de hitbox a partir de sus píxeles reales. El recorrido de interfaz comprueba tienda, opciones de práctica y contenido no vacío del framebuffer tras reiniciar el combate.

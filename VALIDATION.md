@@ -1,4 +1,21 @@
-# Validación de Fight Forge 0.2.0
+# Validación de Fight Forge 0.3.0
+
+- Aplicación verificada: `185bfe8f9e711043e6820ea1fb9ee4f2389a4f50`.
+- Motor JVM: 47 pruebas, 0 fallos, 0 errores y 0 omitidas. `AirCombatTest` contiene 9 regresiones de ataques aéreos, daño, caída, recuperación, pausa de ulti y reinicio; `MovementTemplateTest` comprueba tres casos de plantillas y destinos.
+- `test assembleDebug assembleDebugAndroidTest lintDebug` y APK release firmado: aprobados. Los targets `:app` sin tests no se cuentan como pruebas aprobadas.
+- [Build Android 41359356207](https://github.com/TheMrAleX/SoulFight/actions/runs/41359356207): aprobado.
+- [Aceptación Android 41359356155](https://github.com/TheMrAleX/SoulFight/actions/runs/41359356155): recorrido real y 12 comprobaciones nativas aprobados sobre Android 10 acelerado.
+- Interfaz: confirmación/cancelación de compra, selección y combate, pausa/lista de movimientos, reinicio y contenido real del framebuffer, reanudación, creación de personaje con foto y quieto dibujados, guardado/biblioteca, práctica y casillas activadas/desactivadas. Sin excepción fatal del paquete durante el recorrido.
+- Instrumentación: compra persistente sin doble cargo, importación PNG con ajuste centrado, paquetes de personajes/efectos, escenario animado, TCP con 3600 ticks intercalando saltos y ataques aéreos, igualdad de checksum, caché reutilizada/reparada, 50 pasos de deshacer/rehacer, relleno/borrador, recuperación/borrado persistente y chip de hitbox eliminado mediante un toque localizado en sus píxeles reales.
+- Resultados: `checks=12`, `passed=true`, `INSTRUMENTATION_CODE: -1`. Evidencias en el artefacto `device-evidence` y copia local `/tmp/ff-030-passed-device`; se revisaron las capturas de tienda, selección, práctica y combate reiniciado.
+- El fallo reportado del ataque aéreo se reprodujo primero con tres pruebas fallidas: arco de salto, control horizontal y gravedad durante daño. Las mismas pruebas pasan después de separar física y estados de ataque/daño.
+- La prueba de reinicio encontró una superficie vacía al reemplazar el nodo nativo. Se corrigió conservando la superficie y reiniciando simulación, IA e interpolación dentro de ella. Se mantuvo y aprobó la aserción de contenido del framebuffer.
+
+Firma conservada: applicationId `com.fightforge.game`, RSA 3072, esquema APK v2 y certificado SHA-256 `a8c231eb36ba8c1682da32929d95e16180a4fa62482ef05ba8f4a4feac2073de`. La clave permanece fuera del repositorio en `/workspace/fightforge-signing`.
+
+LAN FFG3 requiere actualizar ambos dispositivos. La prueba usa dos peers TCP en un mismo emulador; no acredita descubrimiento NSD entre dos teléfonos físicos. Tampoco se han medido 60 FPS sostenidos en teléfonos de gama media ni audio/vibración en distintos fabricantes. TRACEABILITY.md mantiene esas comprobaciones manuales diferenciadas.
+
+# Historial: validación de Fight Forge 0.2.0
 
 ## Resultados comprobados
 
