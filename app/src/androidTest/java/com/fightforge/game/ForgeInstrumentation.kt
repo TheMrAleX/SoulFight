@@ -18,6 +18,7 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 class ForgeInstrumentation: Instrumentation() {
+ override fun onCreate(arguments: Bundle?) {super.onCreate(arguments); start()}
  override fun onStart() {
   val result=Bundle(); var count=0
   try {
